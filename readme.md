@@ -1,5 +1,12 @@
 # Setting up Virtual Environment
 
+### This project requires **Python 3.12**.
+
+> To ensure compatibility and proper functionality, please make sure you
+> have Python 3.12  installed. You can verify your
+> Python version by running the following command in your terminal: 
+> ```bash   python --version  ```
+
 ### Create the Virtual Environment
 In the root directory of your project, create a virtual environment named `env`:
 ```bash
@@ -21,6 +28,16 @@ virtualenv env
  ```bash
  pip install -r requirements.txt
  ```
+
+
+> ### Recommendation
+> For handling multiple Python versions on your device, we recommend
+> using **pyenv**. Pyenv is a simple tool that lets you install, manage,
+> and switch between multiple Python versions easily, without
+> interfering with the system Python. This can be especially useful if
+> you work on projects requiring different Python versions.
+> To install `pyenv`, follow the instructions on the [pyenv GitHub
+> page](https://github.com/pyenv/pyenv).
 
 # Docker Setup
 ### Build and Start Docker Containers
