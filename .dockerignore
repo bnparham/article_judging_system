@@ -1,0 +1,14 @@
+# Exclude Python bytecode files
+*.pyc
+
+# Exclude system-specific cache directories
+__pycache__/
+
+# Exclude project-specific files and directories
+*.log
+*.sqlite3
+.vscode/
+.idea/
+__pycache__/
+.docker
+.gitignore

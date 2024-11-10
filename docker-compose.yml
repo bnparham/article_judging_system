@@ -1,0 +1,60 @@
+  version: '3.8'
+  services:
+    redis:
+      container_name: redis-article_judging_system
+      image: redis:7.0.11-alpine
+    django:
+      container_name: django-article_judging_system
+      build:
+        context: .
+        dockerfile: docker/python/Dockerfile
+      command: sh -c "python manage.py migrate
+                      && python manage.py runserver 0.0.0.0:8000"
+      volumes:
+        - ./backend/:/app/
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env
+      depends_on:
+        - redis-article_judging_system
+        - postgresDB_origin-article_judging_system
+    celery_worker:
+      container_name: celery_worker-article_judging_system
+      build:
+        context: .
+        dockerfile: docker/python/Dockerfile
+      volumes:
+        - ./backend/:/app/
+      command: celery --app=core worker -l INFO -B -E -Q queue1,queue2,queue3 --schedule ./celerybeat-schedule
+
+      env_file:
+        - .env
+      depends_on:
+        - django-article_judging_system
+        - redis-article_judging_system
+    postgresDB_origin:
+      image: postgres:16-alpine
+      container_name: postgresDB_origin-article_judging_system
+      hostname: localhost
+      environment:
+        POSTGRES_DB: ${ORIGIN_DB_NAME}
+        POSTGRES_USER: ${ORIGIN_DB_USER}
+        POSTGRES_PASSWORD: ${ORIGIN_DB_PASSWORD}
+      ports:
+        - ${ORIGIN_DB_PORT}:5432
+      volumes:
+        - postgres-origin-data:/var/lib/postgresql/data
+    pgadmin:
+      container_name: pgadmin-article_judging_system
+      image: dpage/pgadmin4
+      depends_on:
+        - postgresDB_origin
+      ports:
+        - "5050:80"
+      environment:
+        PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+        PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      restart: unless-stopped
+  volumes:
+    postgres-origin-data:
