@@ -14,7 +14,6 @@ def update_last_login_ip(sender, request, user, **kwargs):
 @receiver(user_login_failed)
 def handle_failed_login(sender, credentials, request, **kwargs):
     try:
-        print('fire!')
         # Retrieve the username from the login credentials
         username = credentials.get('username', '')
 
