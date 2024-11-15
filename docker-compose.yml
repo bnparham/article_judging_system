@@ -36,7 +36,6 @@
     postgresDB_origin:
       image: postgres:16-alpine
       container_name: postgresDB_origin-article_judging_system
-      hostname: localhost
       environment:
         POSTGRES_DB: ${ORIGIN_DB_NAME}
         POSTGRES_USER: ${ORIGIN_DB_USER}

@@ -1,4 +1,6 @@
 from django.contrib import admin
+from jalali_date import datetime2jalali
+
 from .models import User
 from django.utils.translation import gettext_lazy as _
 
@@ -36,8 +38,8 @@ class MonthFilter(admin.SimpleListFilter):
 class UserAdmin(admin.ModelAdmin):
     # Display columns in the list view
     list_display = ['username', 'email', 'first_name', 'last_name',
-                    'last_login', 'last_login_ip',
-                    'failed_login_attempts', 'is_active', 'is_staff', 'verify_account', 'date_joined']
+                    'get_last_login_jalali', 'last_login_ip',
+                    'failed_login_attempts', 'is_active', 'is_staff', 'verify_account', 'get_date_joined_jalali']
 
     # Filters available in the list view
     list_filter = ['is_active', 'is_staff', 'verify_account', 'failed_login_attempts', 'date_joined', MonthFilter]
@@ -49,14 +51,14 @@ class UserAdmin(admin.ModelAdmin):
     readonly_fields = ['last_login', 'last_login_ip', 'failed_login_attempts', 'last_failed_login']
 
     # Fields to display in the form view
-    fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_active', 'is_staff',
-              'verify_account', 'phone_number', 'address', 'profile_image', 'last_login', 'last_failed_login',
-              'failed_login_attempts', 'last_login_ip', 'date_joined']
+    # fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_active', 'is_staff',
+    #           'verify_account', 'phone_number', 'address', 'profile_image', 'last_login', 'last_failed_login',
+    #           'failed_login_attempts', 'last_login_ip', 'date_joined']
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
         (None, {
-            'فیلذ ها': ('username', 'email', 'first_name', 'last_name', 'password',)
+            'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
         (_('دسترسی ها'), {
             'fields': ('is_active', 'is_staff', 'verify_account')
@@ -90,8 +92,15 @@ class UserAdmin(admin.ModelAdmin):
     lock_user_account.short_description = _('Lock User Account')
 
     # Additional custom methods to display in list view
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        # Example: Show only users who are not locked out
-        return queryset.filter(is_active=True)
+    # def get_queryset(self, request):
+    #     queryset = super().get_queryset(request)
+    #     # Example: Show only users who are not locked out
+    #     return queryset.filter(is_active=True)
 
+    @admin.display(description='تاریخ عضویت', ordering='date_joined')
+    def get_date_joined_jalali(self, obj):
+        return datetime2jalali(obj.date_joined).strftime('%a, %d %b %Y | %H:%M:%S')
+
+    @admin.display(description='آخرین ورود به سیستم', ordering='last_login')
+    def get_last_login_jalali(self, obj):
+        return datetime2jalali(obj.last_login).strftime('%a, %d %b %Y | %H:%M:%S')
