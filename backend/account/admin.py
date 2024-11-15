@@ -1,6 +1,5 @@
 from django.contrib import admin
 from jalali_date import datetime2jalali
-
 from .models import User
 from django.utils.translation import gettext_lazy as _
 
@@ -34,8 +33,10 @@ class MonthFilter(admin.SimpleListFilter):
             elif(hasattr(queryset.model, 'start_date')):
                 return queryset.filter(start_date__month=self.value())
 
+
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+
     # Display columns in the list view
     list_display = ['username', 'email', 'first_name', 'last_name',
                     'get_last_login_jalali', 'last_login_ip',
@@ -48,7 +49,12 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ['username', 'email', 'first_name', 'last_name']
 
     # Read-only fields in the form view
-    readonly_fields = ['last_login', 'last_login_ip', 'failed_login_attempts', 'last_failed_login']
+    readonly_fields = ['get_last_login_jalali',
+                       'last_login_ip',
+                       'password_reset_attempts',
+                       'failed_login_attempts',
+                       'get_last_failed_login_jalali',
+                       'get_last_password_reset_jalali']
 
     # Fields to display in the form view
     # fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_active', 'is_staff',
@@ -67,7 +73,13 @@ class UserAdmin(admin.ModelAdmin):
             'fields': ('phone_number', 'address')
         }),
         (_('سایر اطلاعات'), {
-            'fields': ('failed_login_attempts', 'last_failed_login', 'last_login', 'last_login_ip',)
+            'fields': ('failed_login_attempts',
+                       'get_last_failed_login_jalali',
+                       'get_last_login_jalali',
+                       'password_reset_attempts',
+                       'get_last_password_reset_jalali',
+                       'last_login_ip',
+                       )
         }),
     )
 
@@ -104,3 +116,12 @@ class UserAdmin(admin.ModelAdmin):
     @admin.display(description='آخرین ورود به سیستم', ordering='last_login')
     def get_last_login_jalali(self, obj):
         return datetime2jalali(obj.last_login).strftime('%a, %d %b %Y | %H:%M:%S')
+
+    @admin.display(description='آخرین تلاش ناموفق', ordering='last_failed_login')
+    def get_last_failed_login_jalali(self, obj):
+        return datetime2jalali(obj.last_failed_login).strftime('%a, %d %b %Y | %H:%M:%S')
+
+    @admin.display(description='آخرین بازنشانی رمز عبور', ordering='last_password_reset')
+    def get_last_password_reset_jalali(self, obj):
+        return datetime2jalali(obj.last_password_reset).strftime('%a, %d %b %Y | %H:%M:%S')
+
