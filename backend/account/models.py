@@ -51,6 +51,7 @@ class User(AbstractUser):
         verbose_name='وضعیت فعال بودن/نبودن کاربر'
     )
     date_joined = models.DateTimeField(db_default=Now(), verbose_name='تاریخ عضویت')
+    #TODO : add validator
     email = models.EmailField(unique=True, verbose_name='ایمیل', null=False, blank=False)
     #TODO : add validator
     phone_number = models.CharField(max_length=100, verbose_name='شماره موبایل', unique=True, null=False, blank=False)
