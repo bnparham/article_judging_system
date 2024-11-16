@@ -52,6 +52,7 @@ class User(AbstractUser):
     )
     date_joined = models.DateTimeField(db_default=Now(), verbose_name='تاریخ عضویت')
     email = models.EmailField(unique=True, verbose_name='ایمیل', null=False, blank=False)
+    #TODO : add validator
     phone_number = models.CharField(max_length=100, verbose_name='شماره موبایل', unique=True, null=False, blank=False)
     birthday = models.DateField(null=True, blank=True, verbose_name="تاریخ تولد")
     gender = models.CharField(
