@@ -9,6 +9,7 @@ from django.contrib.auth.models import AbstractUser
 import uuid
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from .validators import is_persian_only
+from django.conf import settings
 
 class User(AbstractUser):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -120,3 +121,30 @@ class User(AbstractUser):
         self.password_reset_attempts = 0
         self.last_password_reset = now()
         self.save()
+
+class Student(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='students'
+    )
+    student_number = models.CharField(max_length=20, unique=True)
+    lessons_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='students'
+    )
+    role = models.CharField(max_length=50, choices=[
+        ('PhD', 'Ph.D.'),
+        ('Master', 'Master'),
+    ])
+    status = models.CharField(max_length=20, choices=[
+        ('current', 'Current'),
+        ('defended', 'Defended'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
