@@ -122,6 +122,43 @@ class User(AbstractUser):
         self.last_password_reset = now()
         self.save()
 
+class Group(models.Model):
+    name = models.CharField(max_length=100, unique=True) 
+    field_of_study = models.CharField(max_length=100) 
+    role = models.CharField(
+        max_length=50)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GroupManager(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="managed_groups"
+    )  
+    group = models.ForeignKey(
+        'Group',
+        on_delete=models.CASCADE,
+        related_name="managers"
+    )  
+    name = models.CharField(max_length=150)  
+    national_code = models.CharField(max_length=10, unique=True)  
+
+    created_at = models.DateTimeField(auto_now_add=True)  
+    updated_at = models.DateTimeField(auto_now=True)  
+
+    def __str__(self):
+        return f"{self.name} - {self.group.name}"
+
+    class Meta:
+        verbose_name = "Group Manager"
+        verbose_name_plural = "Group Managers"
+        unique_together = ('user', 'group')
+
 class Student(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -148,3 +185,4 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
+
