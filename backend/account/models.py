@@ -123,10 +123,9 @@ class User(AbstractUser):
         self.save()
 
 class Group(models.Model):
-    name = models.CharField(max_length=100, unique=True) 
-    field_of_study = models.CharField(max_length=100) 
-    role = models.CharField(
-        max_length=50)  
+    name = models.CharField(max_length=100, unique=True, verbose_name='نام گروه') 
+    field_of_study = models.CharField(max_length=100, verbose_name='رشته تحصیلی') 
+    role = models.CharField(max_length=50)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -143,10 +142,11 @@ class GroupManager(models.Model):
     group = models.ForeignKey(
         'Group',
         on_delete=models.CASCADE,
+        verbose_name='گروه',
         related_name="managers"
     )  
-    name = models.CharField(max_length=150)  
-    national_code = models.CharField(max_length=10, unique=True)  
+    name = models.CharField(max_length=150, verbose_name='نام مدیر گروه')  
+    national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')  
 
     created_at = models.DateTimeField(auto_now_add=True)  
     updated_at = models.DateTimeField(auto_now=True)  
@@ -155,9 +155,8 @@ class GroupManager(models.Model):
         return f"{self.name} - {self.group.name}"
 
     class Meta:
-        verbose_name = "Group Manager"
-        verbose_name_plural = "Group Managers"
-        unique_together = ('user', 'group')
+        verbose_name = "مدیر گروه"
+        verbose_name_plural = "لیست مدیر گروه ها"
 
 class Student(models.Model):
     user = models.ForeignKey(
@@ -165,20 +164,21 @@ class Student(models.Model):
         on_delete=models.CASCADE,
         related_name='students'
     )
-    student_number = models.CharField(max_length=20, unique=True)
+    student_number = models.CharField(max_length=20, unique=True, verbose_name='شماره دانشجویی')
     lessons_group = models.ForeignKey(
         Group,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='students'
+        verbose_name='گروه',
+        related_name='students_group'
     )
-    role = models.CharField(max_length=50, choices=[
-        ('PhD', 'Ph.D.'),
-        ('Master', 'Master'),
+    role = models.CharField(max_length=50,verbose_name='مقطع تحصیلی', choices=[
+        ('دکتری', 'Ph.D.'),
+        ('ارشد', 'Master'),
     ])
-    status = models.CharField(max_length=20, choices=[
-        ('current', 'Current'),
-        ('defended', 'Defended'),
+    status = models.CharField(max_length=20, verbose_name='وضعیت', choices=[
+        ('ترم جاری', 'Current'),
+        ('دفاع شده', 'Defended'),
     ])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -186,3 +186,21 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
 
+class Teacher(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="teacher_profile"
+    )
+    name = models.CharField(max_length=150, verbose_name='نام استاد')
+    national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "استاد"
+        verbose_name_plural = "لیست اساتید"
