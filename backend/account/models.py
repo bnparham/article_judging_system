@@ -8,7 +8,8 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractUser
 import uuid
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from .validators import is_persian_only
+from .validators import is_persian_only, validate_email_domain, validate_iranian_mobile_number
+
 
 class User(AbstractUser):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -51,8 +52,20 @@ class User(AbstractUser):
         verbose_name='وضعیت فعال بودن/نبودن کاربر'
     )
     date_joined = models.DateTimeField(db_default=Now(), verbose_name='تاریخ عضویت')
-    email = models.EmailField(unique=True, verbose_name='ایمیل', null=False, blank=False)
-    phone_number = models.CharField(max_length=100, verbose_name='شماره موبایل', unique=True, null=False, blank=False)
+    #TODO : add validator
+    email = models.EmailField(unique=True,
+                              verbose_name='ایمیل',
+                              null=False,
+                              blank=False,
+                              validators=[validate_email_domain],)
+    #TODO : add validator
+    phone_number = models.CharField(max_length=11,
+                                    verbose_name='شماره موبایل',
+                                    unique=True,
+                                    null=False,
+                                    blank=False,
+                                    validators=[validate_iranian_mobile_number],
+                                    )
     birthday = models.DateField(null=True, blank=True, verbose_name="تاریخ تولد")
     gender = models.CharField(
         max_length=1,
