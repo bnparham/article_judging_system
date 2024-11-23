@@ -114,7 +114,7 @@ class UserAdmin(admin.ModelAdmin):
         updated_count = queryset.update(failed_login_attempts=0)
         self.message_user(request, f'{updated_count} user(s) had their failed login attempts reset.')
 
-    reset_failed_login_attempts.short_description = _('ریست کردن تعداد لاگین های ناموفق برای کاربران انتختاب شده')
+    reset_failed_login_attempts.short_description = _('ریست کردن تعداد لاگین های ناموفق برای کاربران انتخاب شده')
 
     # Custom action to lock the user account (e.g., if too many failed attempts)
 
@@ -132,7 +132,7 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description='تاریخ عضویت', ordering='date_joined')
     def get_date_joined_jalali(self, obj):
-        if obj.date_joined :
+        if obj.date_joined:
             return datetime2jalali(obj.date_joined).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
