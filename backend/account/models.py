@@ -8,8 +8,9 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractUser
 import uuid
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from .validators import is_persian_only, validate_email_domain, validate_iranian_mobile_number
 
+from .validators import is_persian_only, validate_email_domain, validate_iranian_mobile_number
+from django.conf import settings
 
 class User(AbstractUser):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -133,3 +134,86 @@ class User(AbstractUser):
         self.password_reset_attempts = 0
         self.last_password_reset = now()
         self.save()
+
+class Group(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name='نام گروه') 
+    field_of_study = models.CharField(max_length=100, verbose_name='رشته تحصیلی') 
+    role = models.CharField(max_length=50)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GroupManager(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="managed_groups"
+    )  
+    group = models.ForeignKey(
+        'Group',
+        on_delete=models.CASCADE,
+        verbose_name='گروه',
+        related_name="managers"
+    )  
+    name = models.CharField(max_length=150, verbose_name='نام مدیر گروه')  
+    national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')  
+
+    created_at = models.DateTimeField(auto_now_add=True)  
+    updated_at = models.DateTimeField(auto_now=True)  
+
+    def __str__(self):
+        return f"{self.name} - {self.group.name}"
+
+    class Meta:
+        verbose_name = "مدیر گروه"
+        verbose_name_plural = "لیست مدیر گروه ها"
+
+class Student(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='students'
+    )
+    student_number = models.CharField(max_length=20, unique=True, verbose_name='شماره دانشجویی')
+    lessons_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='گروه',
+        related_name='students_group'
+    )
+    role = models.CharField(max_length=50,verbose_name='مقطع تحصیلی', choices=[
+        ('دکتری', 'Ph.D.'),
+        ('ارشد', 'Master'),
+    ])
+    status = models.CharField(max_length=20, verbose_name='وضعیت', choices=[
+        ('ترم جاری', 'Current'),
+        ('دفاع شده', 'Defended'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
+
+class Teacher(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="teacher_profile"
+    )
+    name = models.CharField(max_length=150, verbose_name='نام استاد')
+    national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "استاد"
+        verbose_name_plural = "لیست اساتید"
