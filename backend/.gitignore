@@ -23,6 +23,7 @@ htmlcov/
 
 # IDE and editor files
 .idea/
+../.idea/
 .vscode/
 *.sublime-workspace
 *.sublime-project
