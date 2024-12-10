@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from jalali_date import datetime2jalali
 from .models import User, Group, GroupManager, Student, Teacher
@@ -216,6 +217,17 @@ class StudentAdmin(admin.ModelAdmin):
             return []
         return self.readonly_fields
 
+    def save_model(self, request, obj, form, change):
+        # Check if the user is assigned as a teacher
+        if hasattr(obj.user, 'teacher_profile'):
+            self.message_user(
+                request,
+                _("این کاربر به عنوان استاد تعیین شده است و نمی‌توانید او را به عنوان یک دانشجو ثبت کنید."),
+                level='error'
+            )
+            return
+        super().save_model(request, obj, form, change)
+
 
 
 @admin.register(Teacher)
@@ -251,3 +263,14 @@ class TeacherAdmin(admin.ModelAdmin):
             # Return an empty list of readonly fields in the Add view
             return []
         return self.readonly_fields
+
+    def save_model(self, request, obj, form, change):
+        # Check if the user is assigned as a teacher
+        if hasattr(obj.user, 'student_profile'):
+            self.message_user(
+                request,
+                _("این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید."),
+                level='error'
+            )
+            return
+        super().save_model(request, obj, form, change)

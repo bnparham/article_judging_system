@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 # Create your models here.
@@ -99,7 +100,12 @@ class User(AbstractUser):
         verbose_name_plural = _("لیست کاربران")
 
     def __str__(self):
-        return self.email
+        if hasattr(self, 'teacher_profile'):
+            return f"{self.email} - تخصیص یافته به عنوان استاد "
+        elif hasattr(self, 'student_profile'):
+            return f"{self.email} - تخصیص یافته به عنوان دانشجو "
+        else:
+            return f"{self.email} - تخصیص نیافته "
 
     @classmethod
     def make_verify_user_account(cls, user):
@@ -137,9 +143,28 @@ class User(AbstractUser):
         self.save()
 
 class Group(models.Model):
+    FIELD_OF_STUDY_CHOICES = [
+        ('CS', 'کامپیوتر'),  # Computer Science
+        ('MAT', 'ریاضی'),    # Mathematics
+        ('STA', 'آمار'),     # Statistics
+    ]
+
+    ROLE_CHOICES = [
+        ('Ph.D.', 'دکتری'),
+        ('Master', 'ارشد'),
+    ]
+
     name = models.CharField(max_length=100, unique=True, verbose_name='نام گروه') 
-    field_of_study = models.CharField(max_length=100, verbose_name='رشته تحصیلی') 
-    role = models.CharField(max_length=50)  
+    field_of_study = models.CharField(
+        max_length=3,
+        choices=FIELD_OF_STUDY_CHOICES,
+        verbose_name='رشته تحصیلی'
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        verbose_name='گروه ارشد | دکتری'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
@@ -154,7 +179,8 @@ class GroupManager(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="managed_groups"
+        related_name="managed_groups",
+        verbose_name='کاربر'
     )  
     group = models.ForeignKey(
         'Group',
@@ -176,10 +202,12 @@ class GroupManager(models.Model):
         verbose_name_plural = "لیست مدیر گروه ها"
 
 class Student(models.Model):
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='students'
+        related_name='student_profile',
+        verbose_name='کاربر'
+
     )
     student_number = models.CharField(max_length=20, unique=True, verbose_name='شماره دانشجویی')
     lessons_group = models.ForeignKey(
@@ -189,29 +217,34 @@ class Student(models.Model):
         verbose_name='گروه',
         related_name='students_group'
     )
-    role = models.CharField(max_length=50,verbose_name='مقطع تحصیلی', choices=[
-        ('دکتری', 'Ph.D.'),
-        ('ارشد', 'Master'),
+    role = models.CharField(max_length=20, verbose_name='مقطع تحصیلی', choices=[
+        ('Ph.D.', 'دکتری'),
+        ('Master', 'ارشد'),
     ])
     status = models.CharField(max_length=20, verbose_name='وضعیت', choices=[
-        ('ترم جاری', 'Current'),
-        ('دفاع شده', 'Defended'),
+        ('Current', 'ترم جاری'),
+        ('Defended', 'دفاع شده'),
     ])
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
+        return f"{self.student_number} - {self.user.name} ({self.role})"
 
     class Meta:
         verbose_name = "دانشجو"
         verbose_name_plural = "لیست دانشجویان"
 
+    def clean(self):
+        if hasattr(self.user, 'teacher_profile'):
+            raise ValidationError('این کاربر به عنوان استاد تعیین شده است و نمی‌توانید او را به عنوان یک دانشجو ثبت کنید.')
+
 class Teacher(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="teacher_profile"
+        related_name="teacher_profile",
+        verbose_name='کاربر'
     )
     national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')
 
@@ -220,6 +253,10 @@ class Teacher(models.Model):
 
     def __str__(self):
         return self.user.name
+
+    def clean(self):
+        if hasattr(self.user, 'teacher_profile'):
+            raise ValidationError('این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید.')
 
     class Meta:
         verbose_name = "استاد"
