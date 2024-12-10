@@ -108,6 +108,7 @@ class User(AbstractUser):
         user.save()
         return user
 
+    @property
     def name(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -139,12 +140,15 @@ class Group(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name='نام گروه') 
     field_of_study = models.CharField(max_length=100, verbose_name='رشته تحصیلی') 
     role = models.CharField(max_length=50)  
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "گروه"
+        verbose_name_plural = "گروه های تعریف شده در دانشکده"
 
 class GroupManager(models.Model):
     user = models.ForeignKey(
@@ -161,8 +165,8 @@ class GroupManager(models.Model):
     name = models.CharField(max_length=150, verbose_name='نام مدیر گروه')  
     national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')  
 
-    created_at = models.DateTimeField(auto_now_add=True)  
-    updated_at = models.DateTimeField(auto_now=True)  
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
         return f"{self.name} - {self.group.name}"
@@ -193,11 +197,15 @@ class Student(models.Model):
         ('ترم جاری', 'Current'),
         ('دفاع شده', 'Defended'),
     ])
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
         return f"{self.student_number} - {self.user.get_full_name()} ({self.role})"
+
+    class Meta:
+        verbose_name = "دانشجو"
+        verbose_name_plural = "لیست دانشجویان"
 
 class Teacher(models.Model):
     user = models.OneToOneField(
@@ -205,14 +213,13 @@ class Teacher(models.Model):
         on_delete=models.CASCADE,
         related_name="teacher_profile"
     )
-    name = models.CharField(max_length=150, verbose_name='نام استاد')
     national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return self.name
+        return self.user.name
 
     class Meta:
         verbose_name = "استاد"

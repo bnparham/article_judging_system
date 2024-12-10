@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from jalali_date import datetime2jalali
-from .models import User
+from .models import User, Group, GroupManager, Student, Teacher
 from django.utils.translation import gettext_lazy as _
 
 
@@ -158,3 +159,95 @@ class UserAdmin(admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
+
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'field_of_study', 'role', 'created_at', 'updated_at')
+    search_fields = ('name', 'field_of_study', 'role')
+    list_filter = ('field_of_study', 'role', 'created_at', 'updated_at')
+    ordering = ('name',)
+
+    # Read-only fields in the form view
+    readonly_fields = ['created_at',
+                       'updated_at']
+
+    def get_readonly_fields(self, request, obj=None):
+        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
+        if obj is None:
+            # Return an empty list of readonly fields in the Add view
+            return []
+        return self.readonly_fields
+
+@admin.register(GroupManager)
+class GroupManagerAdmin(admin.ModelAdmin):
+    list_display = ('name', 'national_code', 'group', 'user', 'created_at', 'updated_at')
+    search_fields = ('name', 'national_code', 'group__name', 'user__email')
+    list_filter = ('group', 'created_at', 'updated_at')
+    ordering = ('name',)
+
+    # Read-only fields in the form view
+    readonly_fields = ['created_at',
+                       'updated_at']
+
+    def get_readonly_fields(self, request, obj=None):
+        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
+        if obj is None:
+            # Return an empty list of readonly fields in the Add view
+            return []
+        return self.readonly_fields
+
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('student_number', 'user', 'role', 'status', 'lessons_group', 'created_at', 'updated_at')
+    search_fields = ('student_number', 'user__email', 'user__first_name', 'user__last_name')
+    list_filter = ('role', 'status', 'lessons_group', 'created_at', 'updated_at')
+    ordering = ('student_number',)
+
+    # Read-only fields in the form view
+    readonly_fields = ['created_at',
+                       'updated_at']
+
+    def get_readonly_fields(self, request, obj=None):
+        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
+        if obj is None:
+            # Return an empty list of readonly fields in the Add view
+            return []
+        return self.readonly_fields
+
+
+
+@admin.register(Teacher)
+class TeacherAdmin(admin.ModelAdmin):
+    list_display = ('user_full_name', 'national_code', 'created_at', 'updated_at', 'edit_teacher', 'edit_user')
+    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'national_code')
+    list_filter = ('created_at', 'updated_at')
+    ordering = ('user__first_name',)
+
+    # Read-only fields in the form view
+    readonly_fields = ['created_at',
+                       'updated_at']
+
+    def user_full_name(self, obj):
+        return f"{obj.user.name}"
+    user_full_name.short_description = "نام و نام خانوادگی"
+
+    def edit_teacher(self, obj):
+        return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/account/teacher/{obj.id}/change/")
+    edit_teacher.short_description = "ورود به پنل ویرایش استاد"
+
+    def edit_user(self, obj):
+        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.user.uuid}/change/")
+    edit_user.short_description = "ورود به پنل ویرایش کاربر"
+
+    def get_list_display_links(self, request, list_display):
+        # Remove links from all columns
+        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
+
+    def get_readonly_fields(self, request, obj=None):
+        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
+        if obj is None:
+            # Return an empty list of readonly fields in the Add view
+            return []
+        return self.readonly_fields
