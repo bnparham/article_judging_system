@@ -188,14 +188,16 @@ class GroupManager(models.Model):
         verbose_name='گروه',
         related_name="managers"
     )  
-    name = models.CharField(max_length=150, verbose_name='نام مدیر گروه')  
-    national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')  
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return f"{self.name} - {self.group.name}"
+        return f"{self.user.name} - {self.group.name}"
+
+    def clean(self):
+        if not hasattr(self.user, 'teacher_profile'):
+            raise ValidationError('این کاربر میبایست ابتدا به صورت استاد تعریف شده و سپس به عنوان مدیر گروه انتخاب شود.')
 
     class Meta:
         verbose_name = "مدیر گروه"
@@ -255,7 +257,7 @@ class Teacher(models.Model):
         return self.user.name
 
     def clean(self):
-        if hasattr(self.user, 'teacher_profile'):
+        if hasattr(self.user, 'student_profile'):
             raise ValidationError('این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید.')
 
     class Meta:

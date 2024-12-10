@@ -182,14 +182,33 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(GroupManager)
 class GroupManagerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'national_code', 'group', 'user', 'created_at', 'updated_at')
-    search_fields = ('name', 'national_code', 'group__name', 'user__email')
+    list_display = ('user_full_name', 'user_national_code', 'group', 'created_at', 'updated_at', 'edit_groupManger', 'edit_user')
+    search_fields = ('user_full_name', 'group__name', 'user__email')
     list_filter = ('group', 'created_at', 'updated_at')
-    ordering = ('name',)
 
     # Read-only fields in the form view
     readonly_fields = ['created_at',
                        'updated_at']
+
+    def user_full_name(self, obj):
+        return f"{obj.user.name}"
+    user_full_name.short_description = "نام و نام خانوادگی"
+
+    def user_national_code(self, obj):
+        return f"{obj.user.teacher_profile.national_code}"
+    user_national_code.short_description = "کد ملی"
+
+    def edit_groupManger(self, obj):
+        return format_html('<a href="{}">ویرایش مدیر گروه</a>', f"/admin/account/groupmanager/{obj.id}/change/")
+    edit_groupManger.short_description = "ورود به پنل ویرایش مدیر گروه"
+
+    def edit_user(self, obj):
+        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.user.uuid}/change/")
+    edit_user.short_description = "ورود به پنل ویرایش کاربر"
+
+    def get_list_display_links(self, request, list_display):
+        # Remove links from all columns
+        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
