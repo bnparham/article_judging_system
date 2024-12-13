@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'jalali_date',
     'django_flatpickr',
+    'assignment',
 
 ]
 

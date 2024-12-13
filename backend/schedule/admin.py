@@ -6,6 +6,34 @@ from jalali_date.widgets import AdminJalaliDateWidget
 from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 from django import forms
 from .models import Schedule
+from django.utils.translation import gettext_lazy as _
+
+
+class MonthFilter(admin.SimpleListFilter):
+    title = _('ماه')
+    parameter_name = 'month'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', _('دی')),
+            ('2', _('بهمن')),
+            ('3', _('اسفند')),
+            ('4', _('فروردین')),
+            ('5', _('اردیبهشت')),
+            ('6', _('خرداد')),
+            ('7', _('تیر')),
+            ('8', _('مرداد')),
+            ('9', _('شهریور')),
+            ('10', _('مهر')),
+            ('11', _('آبان')),
+            ('12', _('آذر')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value():
+            if(hasattr(queryset.model, 'date')):
+                return queryset.filter(date__month=self.value())
+
 
 class ScheduleAdminForm(forms.ModelForm):
     class Meta:
@@ -19,7 +47,7 @@ class ScheduleAdminForm(forms.ModelForm):
 class ScheduleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = ScheduleAdminForm
     list_display = ('name', 'get_date_jalali', 'get_time_persian', 'is_active', 'get_created_at_jalali')
-    list_filter = ('is_active',)
+    list_filter = ('is_active', MonthFilter)
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
 
