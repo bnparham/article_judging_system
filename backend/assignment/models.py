@@ -101,37 +101,49 @@ class Session(models.Model):
         verbose_name_plural = 'نشست ها'
 
     def clean(self):
-        # Check if the student is already assigned to another session with the same schedule
-        conflicting_student = Session.objects.filter(student=self.student, schedule=self.schedule)
-        if conflicting_student.exists():
-            raise ValidationError(f"Student {self.student} is already assigned to a session with this schedule.")
+        # Check if the session is being created or updated
+        is_updating = self.pk is not None
 
-        # Check if supervisor1 is already assigned to another session with the same schedule
-        if self.supervisor1:
-            conflicting_supervisor1 = Session.objects.filter(supervisor1=self.supervisor1, schedule=self.schedule)
-            if conflicting_supervisor1.exists():
-                raise ValidationError(f"Supervisor {self.supervisor1} is already assigned to a session with this schedule.")
+        # Check if the professor, supervisors, or graduate monitor are already assigned to another session at the same schedule
+        conflicting_assignments = Session.objects.filter(
+            schedule=self.schedule
+        )
 
-        # Check if supervisor2 is already assigned to another session with the same schedule
-        if self.supervisor2:
-            conflicting_supervisor2 = Session.objects.filter(supervisor2=self.supervisor2, schedule=self.schedule)
-            if conflicting_supervisor2.exists():
-                raise ValidationError(f"Supervisor {self.supervisor2} is already assigned to a session with this schedule.")
+        if is_updating:
+            # If updating, exclude the current session from the conflict check
+            conflicting_assignments = conflicting_assignments.exclude(id=self.id)
 
-        # Check if supervisor3 is already assigned to another session with the same schedule
-        if self.supervisor3:
-            conflicting_supervisor3 = Session.objects.filter(supervisor3=self.supervisor3, schedule=self.schedule)
-            if conflicting_supervisor3.exists():
-                raise ValidationError(f"Supervisor {self.supervisor3} is already assigned to a session with this schedule.")
+        # Check for conflict with the student's previous sessions
+        if conflicting_assignments.filter(student=self.student).exists():
+            raise ValidationError(f"دانشجو {self.student}  در همین زمان در نشست دیگری حضور دارد ")
 
-        # Check if supervisor4 is already assigned to another session with the same schedule
-        if self.supervisor4:
-            conflicting_supervisor4 = Session.objects.filter(supervisor4=self.supervisor4, schedule=self.schedule)
-            if conflicting_supervisor4.exists():
-                raise ValidationError(f"Supervisor {self.supervisor4} is already assigned to a session with this schedule.")
+        # Check for conflict with supervisor1, supervisor2, supervisor3, supervisor4
 
-        # Check if the graduate monitor is already assigned to another session with the same schedule
-        if self.graduate_monitor:
-            conflicting_graduate_monitor = Session.objects.filter(graduate_monitor=self.graduate_monitor, schedule=self.schedule)
-            if conflicting_graduate_monitor.exists():
-                raise ValidationError(f"Graduate Monitor {self.graduate_monitor} is already assigned to a session with this schedule.")
+
+        supervisors = [self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4]
+        for supervisor in supervisors:
+            if supervisor and conflicting_assignments.filter(supervisor1=supervisor).exists():
+                raise ValidationError(
+                    f"استاد {supervisor} به عنوان استاد راهنما در همین زمان در نشست دیگری حضور دارد")
+            if supervisor and conflicting_assignments.filter(supervisor2=supervisor).exists():
+                raise ValidationError(
+                    f"استاد {supervisor} به عنوان استاد راهنما دوم در همین زمان در نشست دیگری حضور دارد")
+            if supervisor and conflicting_assignments.filter(supervisor3=supervisor).exists():
+                raise ValidationError(
+                    f"استاد {supervisor} به عنوان استاد مشاور اول در همین زمان در نشست دیگری حضور دارد")
+            if supervisor and conflicting_assignments.filter(supervisor4=supervisor).exists():
+                raise ValidationError(
+                    f"استاد {supervisor} به عنوان استاد مشاور دوم در همین زمان در نشست دیگری حضور دارد")
+
+        # Check for conflict with graduate monitor
+        if self.graduate_monitor and conflicting_assignments.filter(graduate_monitor=self.graduate_monitor).exists():
+            raise ValidationError(
+                f"Professor {self.graduate_monitor} is already assigned as graduate monitor to another session at this time.")
+
+        # Ensure that a supervisor cannot also be the graduate monitor
+        if self.graduate_monitor in supervisors:
+            raise ValidationError("ناظر تکمیلی نمیتواند به عنوان استاد راهنما یا استاد مشاور حضور داشته باشد !")
+
+        # Ensure that no supervisor is assigned more than once
+        if len(set(supervisors)) != len([s for s in supervisors if s is not None]):
+            raise ValidationError("هر استاد راهنما نمی‌تواند بیش از یک بار به عنوان استاد راهنما یا مشاور انتخاب شود.")

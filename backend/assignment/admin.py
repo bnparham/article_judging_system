@@ -18,7 +18,7 @@ class SessionAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
     # Prepopulate fields if needed (for example, auto-filling some fields)
-    prepopulated_fields = {'description': ('title',)}
+    # prepopulated_fields = {'description': ('title',)}
 
     # Custom form validation for saving the object
     def save_model(self, request, obj, form, change):
