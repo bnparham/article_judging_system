@@ -18,7 +18,7 @@ class ScheduleAdminForm(forms.ModelForm):
 
 class ScheduleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = ScheduleAdminForm
-    list_display = ('name', 'get_date_jalali', 'get_time_persian', 'is_active', 'created_at')
+    list_display = ('name', 'get_date_jalali', 'get_time_persian', 'is_active', 'get_created_at_jalali')
     list_filter = ('is_active',)
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
@@ -48,13 +48,21 @@ class ScheduleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 hour = 12
             elif 1 <= hour < 12:
                 period = "صبح"
-            elif hour == 12:
+            elif 12 <= hour <= 17:
                 period = "ظهر"
+                hour -= 12
             else:
                 period = "عصر"
                 hour -= 12
 
             return f"{hour} {period} و {minute} دقیقه"
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='ساخته شده در زمان تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
 
