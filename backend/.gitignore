@@ -1,0 +1,54 @@
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.pyo
+*.py[cod]
+
+# Virtual environment
+venv/
+../env/
+
+# Django specific
+db.sqlite3
+/media/
+staticfiles/
+*.log
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+
+# IDE and editor files
+.idea/
+../.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# macOS files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js files
+node_modules/
+
+# Deployment
+*.env
+*.key
+*.pem
+secret.json
+.env.*.local
+
+# Celery beat schedule file
+celerybeat-schedule
+
+# Migrations (optional if you want fresh migrations in every environment)
+**/migrations/*.py
+!**/migrations/__init__.py

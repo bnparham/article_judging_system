@@ -17,8 +17,8 @@
       env_file:
         - .env
       depends_on:
-        - redis-article_judging_system
-        - postgresDB_origin-article_judging_system
+        - redis
+        - postgresDB_origin
     celery_worker:
       container_name: celery_worker-article_judging_system
       build:
@@ -31,12 +31,11 @@
       env_file:
         - .env
       depends_on:
-        - django-article_judging_system
-        - redis-article_judging_system
+        - django
+        - redis
     postgresDB_origin:
       image: postgres:16-alpine
       container_name: postgresDB_origin-article_judging_system
-      hostname: localhost
       environment:
         POSTGRES_DB: ${ORIGIN_DB_NAME}
         POSTGRES_USER: ${ORIGIN_DB_USER}

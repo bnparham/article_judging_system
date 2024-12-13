@@ -14,6 +14,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import dj_database_url
+import locale
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,8 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # === installed apps ===
+    'account.apps.AccountConfig',
     # === third party modules ===
     'rest_framework',
+    'jalali_date',
+
 ]
 
 MIDDLEWARE = [
@@ -80,31 +85,31 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # ====== DJANGO DEFAULT DB SETTINGS ======
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 # ====== DJANGO DEFAULT DB SETTINGS ======
 
 
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('ORIGIN_DB_NAME'),
-            'USER': os.getenv('ORIGIN_DB_USER'),
-            'PASSWORD': os.getenv('ORIGIN_DB_PASSWORD'),
-            'HOST': os.getenv('ORIGIN_DB_HOST'),
-            'PORT': os.getenv('ORIGIN_DB_PORT'),
-        },
-    }
-else:
-    DATABASES = {
-        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
-    }
+# if DEBUG:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('ORIGIN_DB_NAME'),
+#             'USER': os.getenv('ORIGIN_DB_USER'),
+#             'PASSWORD': os.getenv('ORIGIN_DB_PASSWORD'),
+#             'HOST': os.getenv('ORIGIN_DB_HOST'),
+#             'PORT': os.getenv('ORIGIN_DB_PORT'),
+#         },
+#     }
+# else:
+#     DATABASES = {
+#         'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+#     }
 
 
 
@@ -130,13 +135,18 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fa-IR'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 
 USE_TZ = True
+
+# IF Windows
+locale.setlocale(locale.LC_ALL, "Persian_Iran.UTF-8")
+# IF Other OS
+# locale.setlocale(locale.LC_ALL, "fa_IR.UTF-8")
 
 
 # Static files (CSS, JavaScript, Images)
@@ -152,3 +162,33 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # celery configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND')
+
+
+# default settings (optional)
+JALALI_DATE_DEFAULTS = {
+   # if change it to true then all dates of the list_display will convert to the Jalali.
+   'LIST_DISPLAY_AUTO_CONVERT': True,
+   'Strftime': {
+        'date': '%y/%m/%d',
+        'datetime': '%H:%M:%S _ %y/%m/%d',
+    },
+    'Static': {
+        'js': [
+            # loading datepicker
+            'admin/js/django_jalali.min.js',
+            # OR
+            # 'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.core.js',
+            # 'admin/jquery.ui.datepicker.jalali/scripts/calendar.js',
+            # 'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.datepicker-cc.js',
+            # 'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.datepicker-cc-fa.js',
+            # 'admin/js/main.js',
+        ],
+        'css': {
+            'all': [
+                'admin/jquery.ui.datepicker.jalali/themes/base/jquery-ui.min.css',
+            ]
+        }
+    },
+}
+
+AUTH_USER_MODEL = 'account.User'
