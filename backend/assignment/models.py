@@ -79,7 +79,7 @@ class Session(models.Model):
 
     # Optional: A date when the assignment should be completed or submitted
     session_status = models.BooleanField(
-        default=True,
+        default=False,
         help_text="آیا این نشست به اتمام رسیده یا خیر",
         verbose_name="بررسی وضعیت نشست"
     )
@@ -122,28 +122,41 @@ class Session(models.Model):
 
         supervisors = [self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4]
         for supervisor in supervisors:
-            if supervisor and conflicting_assignments.filter(supervisor1=supervisor).exists():
+            # Check for conflict with graduate monitor with other supervisors
+            GM_check = conflicting_assignments.filter(graduate_monitor=supervisor)
+            print(GM_check)
+            CA_1 = conflicting_assignments.filter(supervisor1=supervisor)
+            if supervisor and GM_check.exists():
                 raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد راهنما در همین زمان در نشست دیگری حضور دارد")
-            if supervisor and conflicting_assignments.filter(supervisor2=supervisor).exists():
+                    f"استاد {supervisor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری ({GM_check.last().title} - {GM_check.last().schedule}) حضور دارد ")
+            if supervisor and CA_1.exists():
                 raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد راهنما دوم در همین زمان در نشست دیگری حضور دارد")
-            if supervisor and conflicting_assignments.filter(supervisor3=supervisor).exists():
+                    f"استاد {supervisor} به عنوان استاد راهنما اول در همین زمان در نشست دیگری ({CA_1.last().title} - {CA_1.last().schedule}) حضور دارد ")
+            CA_2 = conflicting_assignments.filter(supervisor2=supervisor)
+            if supervisor and CA_2.exists():
                 raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد مشاور اول در همین زمان در نشست دیگری حضور دارد")
-            if supervisor and conflicting_assignments.filter(supervisor4=supervisor).exists():
+                    f"استاد {supervisor} به عنوان استاد راهنما دوم در همین زمان در نشست دیگری ({CA_2.last().title} - {CA_2.last().schedule}) حضور دارد ")
+            CA_3 = conflicting_assignments.filter(supervisor3=supervisor)
+            if supervisor and CA_3.exists():
                 raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد مشاور دوم در همین زمان در نشست دیگری حضور دارد")
+                    f"استاد {supervisor} به عنوان استاد مشاور اول در همین زمان در نشست دیگری ({CA_3.last().title} - {CA_3.last().schedule}) حضور دارد ")
+            CA_4 = conflicting_assignments.filter(supervisor4=supervisor)
+            if supervisor and CA_4.exists():
+                raise ValidationError(
+                    f"استاد {supervisor} به عنوان استاد مشاور دوم در همین زمان در نشست دیگری ({CA_4.last().title} - {CA_4.last().schedule}) حضور دارد ")
 
-        # Check for conflict with graduate monitor
-        if self.graduate_monitor and conflicting_assignments.filter(graduate_monitor=self.graduate_monitor).exists():
+        # Check for conflict with graduate monitor with other graduate monitor
+        CA_5 = conflicting_assignments.filter(graduate_monitor=self.graduate_monitor)
+        if self.graduate_monitor and CA_5.exists():
             raise ValidationError(
-                f"Professor {self.graduate_monitor} is already assigned as graduate monitor to another session at this time.")
+                f"استاد {self.graduate_monitor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری ({CA_4.last().title} - {CA_4.last().schedule}) حضور دارد "
+            )
 
         # Ensure that a supervisor cannot also be the graduate monitor
         if self.graduate_monitor in supervisors:
             raise ValidationError("ناظر تکمیلی نمیتواند به عنوان استاد راهنما یا استاد مشاور حضور داشته باشد !")
 
         # Ensure that no supervisor is assigned more than once
-        if len(set(supervisors)) != len([s for s in supervisors if s is not None]):
+        non_null_supervisors = [s for s in supervisors if s is not None]
+        if len(set(non_null_supervisors)) != len(non_null_supervisors):
             raise ValidationError("هر استاد راهنما نمی‌تواند بیش از یک بار به عنوان استاد راهنما یا مشاور انتخاب شود.")
