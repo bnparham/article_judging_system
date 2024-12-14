@@ -183,14 +183,14 @@ class SessionAdmin(admin.ModelAdmin):
             return []
         return self.readonly_fields
 
-    @admin.display(description='ایجاد شده در زمان', ordering='created_at')
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
     def get_created_at_jalali(self, obj):
         if obj.created_at:
             return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
 
-    @admin.display(description='آخرین ویرایش در زمان', ordering='updated_at')
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
     def get_updated_at_jalali(self, obj):
         if obj.updated_at:
             return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
