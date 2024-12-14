@@ -163,7 +163,7 @@ class SessionAdmin(admin.ModelAdmin):
             'fields': ('schedule',)
         }),
         (_('C'), {
-            'fields': ('student' ,'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor', 'session_status')
+            'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor', 'session_status')
         }),
         (_('D'), {
             'fields': ('get_created_at_jalali',
@@ -171,6 +171,26 @@ class SessionAdmin(admin.ModelAdmin):
                        )
         }),
     )
+
+    def get_fieldsets(self, request, obj=None):
+        # If `obj` is None, it's the Add view
+        if obj is None:
+            # Exclude the "سایر اطلاعات" fieldset
+            return (
+                (_('A'), {
+                    'fields': ('title', 'description',)
+                }),
+                (_('B'), {
+                    'fields': ('schedule',)
+                }),
+                (_('C'), {
+                    'fields': (
+                    'student', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
+                    'session_status')
+                }),
+            )
+        # Show all fieldsets (default) in the Change view
+        return super().get_fieldsets(request, obj)
 
     # Prepopulate fields if needed (for example, auto-filling some fields)
     # prepopulated_fields = {'description': ('title',)}

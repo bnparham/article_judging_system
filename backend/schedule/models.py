@@ -63,17 +63,22 @@ class Schedule(models.Model):
             minute = time.minute
 
             # Determine AM/PM and adjust the hour
-            if hour == 0:
-                period = "بامداد"
-                hour = 12
-            elif 1 <= hour < 12:
-                period = "صبح"
-            elif 12 <= hour <= 17:
-                period = "ظهر"
-                hour -= 12
-            else:
-                period = "عصر"
-                hour -= 12
+            match hour:
+                case 0:
+                    period = "بامداد"
+                    hour = 12
+                case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11:
+                    period = "صبح"
+                case 12:
+                    period = "ظهر"
+                    hour = 12
+                case 13 | 14 | 15 | 16:
+                    period = "ظهر"
+                    hour -= 12
+                case _:
+                    period = "عصر"
+                    hour -= 12
+
 
             return f"{hour} {period} و {minute} دقیقه"
         else:

@@ -160,3 +160,6 @@ class Session(models.Model):
         non_null_supervisors = [s for s in supervisors if s is not None]
         if len(set(non_null_supervisors)) != len(non_null_supervisors):
             raise ValidationError("هر استاد راهنما نمی‌تواند بیش از یک بار به عنوان استاد راهنما یا مشاور انتخاب شود.")
+
+    def __str__(self):
+        return f"{self.title} | {self.schedule}"

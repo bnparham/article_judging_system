@@ -60,16 +60,16 @@ class UserAdmin(admin.ModelAdmin):
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
-        (_('A'), {
+        (_('Info'), {
             'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
-        (_('B'), {
-            'fields': ('is_active', 'is_staff', 'verify_account')
+        (_('Permisions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser' ,'verify_account')
         }),
-        (_('C'), {
+        (_('Contact'), {
             'fields': ('phone_number', 'address')
         }),
-        (_('D'), {
+        (_('Details'), {
             'fields': ('failed_login_attempts',
                        'get_last_failed_login_jalali',
                        'get_last_login_jalali',
@@ -77,6 +77,11 @@ class UserAdmin(admin.ModelAdmin):
                        'get_last_password_reset_jalali',
                        'last_login_ip',
                        )
+        }),
+        (_('Groups and Permissions'), {
+            'fields': ('groups', 'user_permissions'),
+            'classes': ('collapse',),  # Optional: Adds a collapsible section in the admin
+            'description': _('Manage the groups and permissions for this user.'),  # Optional: Adds a description
         }),
     )
 
@@ -98,13 +103,13 @@ class UserAdmin(admin.ModelAdmin):
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
             return (
-                (None, {
+                ('Info', {
                     'fields': ('username', 'email', 'first_name', 'last_name',)
                 }),
-                (_('دسترسی ها'), {
-                    'fields': ('is_active', 'is_staff', 'verify_account')
+                (_('Permisions'), {
+                    'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
                 }),
-                (_('اطلاعات تماس'), {
+                (_('Contact'), {
                     'fields': ('phone_number', 'address')
                 }),
             )
