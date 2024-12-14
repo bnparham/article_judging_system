@@ -30,6 +30,114 @@ class MonthFilter(admin.SimpleListFilter):
             if(hasattr(queryset.model, 'schedule')):
                 return queryset.filter(schedule__date__month=self.value())
 
+
+class MonthFilter_created_at(admin.SimpleListFilter):
+    title = _('بر اساس زمان ایجاد شده ')
+    parameter_name = 'month_created_at'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', _('دی')),
+            ('2', _('بهمن')),
+            ('3', _('اسفند')),
+            ('4', _('فروردین')),
+            ('5', _('اردیبهشت')),
+            ('6', _('خرداد')),
+            ('7', _('تیر')),
+            ('8', _('مرداد')),
+            ('9', _('شهریور')),
+            ('10', _('مهر')),
+            ('11', _('آبان')),
+            ('12', _('آذر')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value():
+            if(hasattr(queryset.model, 'created_at')):
+                return queryset.filter(created_at__month=self.value())
+
+class MonthFilter_updated_at(admin.SimpleListFilter):
+    title = _('بر اساس زمان ویرایش شده')
+    parameter_name = 'month_updated_at'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', _('دی')),
+            ('2', _('بهمن')),
+            ('3', _('اسفند')),
+            ('4', _('فروردین')),
+            ('5', _('اردیبهشت')),
+            ('6', _('خرداد')),
+            ('7', _('تیر')),
+            ('8', _('مرداد')),
+            ('9', _('شهریور')),
+            ('10', _('مهر')),
+            ('11', _('آبان')),
+            ('12', _('آذر')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value():
+            if(hasattr(queryset.model, 'updated_at')):
+                return queryset.filter(updated_at__month=self.value())
+
+class SupervisorCountFilter(admin.SimpleListFilter):
+    title = _('تعداد استاد راهنما')
+    parameter_name = 'supervisor_count'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('1', _('یک استاد راهنما')),
+            ('2', _('دو استاد راهنما')),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == '1':
+            return queryset.filter(
+                supervisor1__isnull=False,
+                supervisor2__isnull=True,
+            )
+        elif self.value() == '2':
+            return queryset.filter(
+                supervisor1__isnull=False,
+                supervisor2__isnull=False,
+            )
+        return queryset
+
+class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
+    title = _('تعداد استاد مشاور')
+    parameter_name = 'Consultant_Professor_count'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('0', _('بدون استاد مشاور')),
+            ('1', _('یک استاد مشاور')),
+            ('2', _('دو استاد مشاور')),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == '0':
+            return queryset.filter(
+                supervisor3__isnull=True,
+                supervisor4__isnull=True,
+            )
+        elif self.value() == '1':
+            return queryset.filter(
+                supervisor3__isnull=True,
+                supervisor4__isnull=False,
+            )
+        elif self.value() == '1':
+            return queryset.filter(
+                supervisor3__isnull=False,
+                supervisor4__isnull=True,
+            )
+        elif self.value() == '2':
+            return queryset.filter(
+                supervisor3__isnull=False,
+                supervisor4__isnull=False,
+            )
+        return queryset
+
 class SessionAdmin(admin.ModelAdmin):
     # Fields to be displayed in the list view
     list_display = ('title', 'student', 'schedule', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor', 'session_status', 'get_created_at_jalali', 'get_updated_at_jalali')
@@ -38,7 +146,10 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ('title', 'student__user__first_name', 'student__user__last_name', 'supervisor1__user__first_name', 'supervisor1__user__last_name', 'supervisor2__user__first_name', 'supervisor2__user__last_name', 'supervisor3__user__first_name', 'supervisor3__user__last_name', 'supervisor4__user__first_name', 'supervisor4__user__last_name')
 
     # Filters to narrow down results in the list view
-    list_filter = ('session_status', MonthFilter)
+    list_filter = ('session_status', MonthFilter, MonthFilter_created_at,
+                   MonthFilter_updated_at,
+                   SupervisorCountFilter,
+                   Consultant_ProfessorCountFilter)
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali')
