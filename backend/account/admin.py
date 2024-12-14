@@ -164,14 +164,29 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'field_of_study', 'role', 'created_at', 'updated_at')
+    list_display = ('name', 'field_of_study', 'role',
+                    'get_created_at_jalali', 'get_updated_at_jalali')
     search_fields = ('name', 'field_of_study', 'role')
     list_filter = ('field_of_study', 'role', 'created_at', 'updated_at')
     ordering = ('name',)
 
     # Read-only fields in the form view
-    readonly_fields = ['created_at',
-                       'updated_at']
+    readonly_fields = ['get_created_at_jalali',
+                       'get_updated_at_jalali']
+
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
+    def get_updated_at_jalali(self, obj):
+        if obj.updated_at:
+            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
