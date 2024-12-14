@@ -60,16 +60,16 @@ class UserAdmin(admin.ModelAdmin):
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
-        (None, {
+        (_('A'), {
             'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
-        (_('دسترسی ها'), {
+        (_('B'), {
             'fields': ('is_active', 'is_staff', 'verify_account')
         }),
-        (_('اطلاعات تماس'), {
+        (_('C'), {
             'fields': ('phone_number', 'address')
         }),
-        (_('سایر اطلاعات'), {
+        (_('D'), {
             'fields': ('failed_login_attempts',
                        'get_last_failed_login_jalali',
                        'get_last_login_jalali',
