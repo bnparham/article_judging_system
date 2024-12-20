@@ -3,7 +3,7 @@ from jalali_date import datetime2jalali
 
 from .models import Session
 from django.utils.translation import gettext_lazy as _
-
+from django.db.models import Q
 
 class MonthFilter(admin.SimpleListFilter):
     title = _('بر اساس زمانبدی نشست')
@@ -177,6 +177,50 @@ class SessionAdmin(admin.ModelAdmin):
                        )
         }),
     )
+
+    class Media:
+        js = ('js/filter_supervisors.js',)
+
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Override get_form to dynamically filter the supervisor fields based on the selected schedule.
+        """
+        form = super().get_form(request, obj, **kwargs)
+
+        if obj and obj.pk is not None:
+            current_session_schedule = obj.schedule  # Current session's schedule
+            current_session_id = obj.pk  # Current session ID
+
+            supervisor_fields = ['supervisor1', 'supervisor2', 'supervisor3', 'supervisor4']
+            for field_name in supervisor_fields:
+                field = form.base_fields[field_name]
+
+                query_assigned_to_current = field.queryset.filter(
+                    Q(supervisor1_assignments__schedule=current_session_schedule,
+                      supervisor1_assignments__id=current_session_id) |
+                    Q(supervisor2_assignments__schedule=current_session_schedule,
+                      supervisor2_assignments__id=current_session_id) |
+                    Q(supervisor3_assignments__schedule=current_session_schedule,
+                      supervisor3_assignments__id=current_session_id) |
+                    Q(supervisor4_assignments__schedule=current_session_schedule,
+                      supervisor4_assignments__id=current_session_id)
+                )
+
+                # Query to exclude supervisors assigned to the same schedule in other sessions
+                query_not_in_other_sessions = field.queryset.filter(
+                    ~Q(supervisor1_assignments__schedule=current_session_schedule) &
+                    ~Q(supervisor2_assignments__schedule=current_session_schedule) &
+                    ~Q(supervisor3_assignments__schedule=current_session_schedule) &
+                    ~Q(supervisor4_assignments__schedule=current_session_schedule)
+                )
+
+                # Combine the two querysets and remove duplicates
+                combined_queryset = query_assigned_to_current | query_not_in_other_sessions
+
+                # Assign the combined queryset to the field
+                field.queryset = combined_queryset.distinct()
+
+        return form
 
     def get_fieldsets(self, request, obj=None):
         # If `obj` is None, it's the Add view
