@@ -60,16 +60,16 @@ class UserAdmin(admin.ModelAdmin):
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
-        (None, {
+        (_('Info'), {
             'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
-        (_('دسترسی ها'), {
-            'fields': ('is_active', 'is_staff', 'verify_account')
+        (_('Permisions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser' ,'verify_account')
         }),
-        (_('اطلاعات تماس'), {
+        (_('Contact'), {
             'fields': ('phone_number', 'address')
         }),
-        (_('سایر اطلاعات'), {
+        (_('Details'), {
             'fields': ('failed_login_attempts',
                        'get_last_failed_login_jalali',
                        'get_last_login_jalali',
@@ -77,6 +77,11 @@ class UserAdmin(admin.ModelAdmin):
                        'get_last_password_reset_jalali',
                        'last_login_ip',
                        )
+        }),
+        (_('Groups and Permissions'), {
+            'fields': ('groups', 'user_permissions'),
+            'classes': ('collapse',),  # Optional: Adds a collapsible section in the admin
+            'description': _('Manage the groups and permissions for this user.'),  # Optional: Adds a description
         }),
     )
 
@@ -98,13 +103,13 @@ class UserAdmin(admin.ModelAdmin):
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
             return (
-                (None, {
+                ('Info', {
                     'fields': ('username', 'email', 'first_name', 'last_name',)
                 }),
-                (_('دسترسی ها'), {
-                    'fields': ('is_active', 'is_staff', 'verify_account')
+                (_('Permisions'), {
+                    'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
                 }),
-                (_('اطلاعات تماس'), {
+                (_('Contact'), {
                     'fields': ('phone_number', 'address')
                 }),
             )
@@ -164,14 +169,29 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'field_of_study', 'role', 'created_at', 'updated_at')
+    list_display = ('name', 'field_of_study', 'role',
+                    'get_created_at_jalali', 'get_updated_at_jalali')
     search_fields = ('name', 'field_of_study', 'role')
     list_filter = ('field_of_study', 'role', 'created_at', 'updated_at')
     ordering = ('name',)
 
     # Read-only fields in the form view
-    readonly_fields = ['created_at',
-                       'updated_at']
+    readonly_fields = ['get_created_at_jalali',
+                       'get_updated_at_jalali']
+
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
+    def get_updated_at_jalali(self, obj):
+        if obj.updated_at:
+            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
@@ -182,20 +202,21 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(GroupManager)
 class GroupManagerAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'user_national_code', 'group', 'created_at', 'updated_at', 'edit_groupManger', 'edit_user')
+    list_display = ('user_full_name', 'user_national_code', 'group',
+                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_groupManger', 'edit_user')
     search_fields = ('user_full_name', 'group__name', 'user__email')
     list_filter = ('group', 'created_at', 'updated_at')
 
     # Read-only fields in the form view
-    readonly_fields = ['created_at',
-                       'updated_at']
+    readonly_fields = ['get_created_at_jalali',
+                       'get_updated_at_jalali']
 
     def user_full_name(self, obj):
-        return f"{obj.user.name}"
+        return f"{obj.professor.user.name}"
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def user_national_code(self, obj):
-        return f"{obj.user.teacher_profile.national_code}"
+        return f"{obj.professor.national_code}"
     user_national_code.short_description = "کد ملی"
 
     def edit_groupManger(self, obj):
@@ -203,8 +224,22 @@ class GroupManagerAdmin(admin.ModelAdmin):
     edit_groupManger.short_description = "ورود به پنل ویرایش مدیر گروه"
 
     def edit_user(self, obj):
-        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.user.uuid}/change/")
+        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.professor.user.uuid}/change/")
     edit_user.short_description = "ورود به پنل ویرایش کاربر"
+
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
+    def get_updated_at_jalali(self, obj):
+        if obj.updated_at:
+            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
 
     def get_list_display_links(self, request, list_display):
         # Remove links from all columns
@@ -220,14 +255,15 @@ class GroupManagerAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_number', 'user', 'role', 'status', 'lessons_group', 'created_at', 'updated_at')
+    list_display = ('student_number', 'user', 'role', 'status',
+                    'lessons_group', 'get_created_at_jalali', 'get_updated_at_jalali')
     search_fields = ('student_number', 'user__email', 'user__first_name', 'user__last_name')
     list_filter = ('role', 'status', 'lessons_group', 'created_at', 'updated_at')
     ordering = ('student_number',)
 
     # Read-only fields in the form view
-    readonly_fields = ['created_at',
-                       'updated_at']
+    readonly_fields = ['get_created_at_jalali',
+                       'get_updated_at_jalali']
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
@@ -235,6 +271,20 @@ class StudentAdmin(admin.ModelAdmin):
             # Return an empty list of readonly fields in the Add view
             return []
         return self.readonly_fields
+
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
+    def get_updated_at_jalali(self, obj):
+        if obj.updated_at:
+            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
 
     def save_model(self, request, obj, form, change):
         # Check if the user is assigned as a teacher
@@ -251,14 +301,15 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'national_code', 'created_at', 'updated_at', 'edit_teacher', 'edit_user')
+    list_display = ('user_full_name', 'national_code',
+                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher', 'edit_user')
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'national_code')
     list_filter = ('created_at', 'updated_at')
     ordering = ('user__first_name',)
 
     # Read-only fields in the form view
-    readonly_fields = ['created_at',
-                       'updated_at']
+    readonly_fields = ['get_created_at_jalali',
+                       'get_updated_at_jalali']
 
     def user_full_name(self, obj):
         return f"{obj.user.name}"
@@ -282,6 +333,21 @@ class TeacherAdmin(admin.ModelAdmin):
             # Return an empty list of readonly fields in the Add view
             return []
         return self.readonly_fields
+
+
+    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
+    def get_created_at_jalali(self, obj):
+        if obj.created_at:
+            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
+    def get_updated_at_jalali(self, obj):
+        if obj.updated_at:
+            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
+        else:
+            return "ثبت نشده است"
 
     def save_model(self, request, obj, form, change):
         # Check if the user is assigned as a teacher

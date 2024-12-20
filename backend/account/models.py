@@ -176,11 +176,11 @@ class Group(models.Model):
         verbose_name_plural = "گروه های تعریف شده در دانشکده"
 
 class GroupManager(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    professor = models.ForeignKey(
+        "account.Teacher",
         on_delete=models.CASCADE,
         related_name="managed_groups",
-        verbose_name='کاربر'
+        verbose_name='اساتید تعریف شده در سامانه'
     )  
     group = models.ForeignKey(
         'Group',
@@ -193,10 +193,10 @@ class GroupManager(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return f"{self.user.name} - {self.group.name}"
+        return f"{self.professor.user.name} - {self.group.name}"
 
     def clean(self):
-        if not hasattr(self.user, 'teacher_profile'):
+        if not hasattr(self.professor.user, 'teacher_profile'):
             raise ValidationError('این کاربر میبایست ابتدا به صورت استاد تعریف شده و سپس به عنوان مدیر گروه انتخاب شود.')
 
     class Meta:
@@ -204,6 +204,12 @@ class GroupManager(models.Model):
         verbose_name_plural = "لیست مدیر گروه ها"
 
 class Student(models.Model):
+
+    ROLES_DICT = {
+        'Ph.D.': 'دکتری',
+        'Master': 'ارشد',
+    }
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -219,10 +225,7 @@ class Student(models.Model):
         verbose_name='گروه',
         related_name='students_group'
     )
-    role = models.CharField(max_length=20, verbose_name='مقطع تحصیلی', choices=[
-        ('Ph.D.', 'دکتری'),
-        ('Master', 'ارشد'),
-    ])
+    role = models.CharField(max_length=20, verbose_name='مقطع تحصیلی', choices=ROLES_DICT)
     status = models.CharField(max_length=20, verbose_name='وضعیت', choices=[
         ('Current', 'ترم جاری'),
         ('Defended', 'دفاع شده'),
@@ -231,7 +234,7 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return f"{self.student_number} - {self.user.name} ({self.role})"
+        return f"{self.student_number} - {self.user.name} ({self.ROLES_DICT[self.role]})"
 
     class Meta:
         verbose_name = "دانشجو"

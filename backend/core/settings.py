@@ -41,9 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # === installed apps ===
     'account.apps.AccountConfig',
+    'schedule.apps.ScheduleConfig',
     # === third party modules ===
     'rest_framework',
     'jalali_date',
+    'django_flatpickr',
+    'assignment',
 
 ]
 
