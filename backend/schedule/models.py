@@ -79,7 +79,8 @@ class Schedule(models.Model):
                     period = "عصر"
                     hour -= 12
 
-
+            if minute == 0 :
+                return f"{hour} {period}"
             return f"{hour} {period} و {minute} دقیقه"
         else:
             return "ثبت نشده است"

@@ -140,7 +140,10 @@ class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
 
 class SessionAdmin(admin.ModelAdmin):
     # Fields to be displayed in the list view
-    list_display = ('title', 'student', 'schedule', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor', 'session_status', 'get_created_at_jalali', 'get_updated_at_jalali')
+    list_display = ('title', 'student', 'schedule', 'supervisor1',
+                    'supervisor2', 'supervisor3', 'supervisor4',
+                    'graduate_monitor', 'judge1', 'judge2', 'judge3', 'session_status',
+                    'get_created_at_jalali', 'get_updated_at_jalali')
 
     # Fields to be used for searching in the admin interface
     search_fields = ('title', 'student__user__first_name', 'student__user__last_name', 'supervisor1__user__first_name', 'supervisor1__user__last_name', 'supervisor2__user__first_name', 'supervisor2__user__last_name', 'supervisor3__user__first_name', 'supervisor3__user__last_name', 'supervisor4__user__first_name', 'supervisor4__user__last_name')
@@ -163,7 +166,10 @@ class SessionAdmin(admin.ModelAdmin):
             'fields': ('schedule',)
         }),
         (_('C'), {
-            'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor', 'session_status')
+            'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
+                       'supervisor4', 'graduate_monitor',
+                       'judge1', 'judge2', 'judge3',
+                       'session_status')
         }),
         (_('D'), {
             'fields': ('get_created_at_jalali',
@@ -185,7 +191,9 @@ class SessionAdmin(admin.ModelAdmin):
                 }),
                 (_('C'), {
                     'fields': (
-                    'student', 'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
+                    'student', 'supervisor1', 'supervisor2', 'supervisor3',
+                    'supervisor4', 'graduate_monitor',
+                    'judge1', 'judge2', 'judge3',
                     'session_status')
                 }),
             )
