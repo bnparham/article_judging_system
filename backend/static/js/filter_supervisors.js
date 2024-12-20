@@ -7,13 +7,24 @@
         const supervisor3Field = document.getElementById('id_supervisor3');  // Supervisor3 field ID
         const supervisor4Field = document.getElementById('id_supervisor4');  // Supervisor4 field ID
 
+        // Function to get session ID from the URL
+        function getSessionIdFromUrl() {
+            const urlPath = window.location.pathname; // Get the full URL path
+            const sessionId = urlPath.split('/')[4]; // Assuming the session ID is the 5th segment of the URL
+            return sessionId;
+        }
+
+
         // Function to update supervisor options
         function updateSupervisorOptions() {
             const selectedSchedule = scheduleField.value;
             if (!selectedSchedule) return;  // Exit if no schedule is selected
 
+            // Get session ID from the URL
+            const sessionId = getSessionIdFromUrl();
+
             // Fetch the available supervisors dynamically based on the selected schedule
-            fetch(`/assignment/admin/session/filter_supervisors/${selectedSchedule}/`)  // URL to fetch filtered supervisors
+            fetch(`/assignment/admin/session/filter_supervisors/${selectedSchedule}/${sessionId}/`)  // URL to fetch filtered supervisors
                 .then(response => response.json())
                 .then(data => {
                     // Clear current options
