@@ -198,7 +198,7 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ('title', 'student__user__first_name', 'student__user__last_name', 'supervisor1__user__first_name', 'supervisor1__user__last_name', 'supervisor2__user__first_name', 'supervisor2__user__last_name', 'supervisor3__user__first_name', 'supervisor3__user__last_name', 'supervisor4__user__first_name', 'supervisor4__user__last_name')
 
     # Filters to narrow down results in the list view
-    list_filter = ('session_status', MonthFilter, MonthFilter_created_at,
+    list_filter = ('session_status', 'is_active', MonthFilter, MonthFilter_created_at,
                    MonthFilter_updated_at,
                    SupervisorCountFilter,
                    Consultant_ProfessorCountFilter,
