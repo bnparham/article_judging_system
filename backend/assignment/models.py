@@ -141,6 +141,18 @@ class Session(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
+
+        if not self.schedule_id:
+            raise ValidationError(f"هیچ زمانبندی برای این نشست انتخاب نشده است !")
+        if not self.title:
+            raise ValidationError(f"هیچ عنوانی برای این نشست انتخاب نشده است !")
+        if not self.student:
+            raise ValidationError(f"هیچ دانشجویی برای این نشست انتخاب نشده است !")
+        if not self.supervisor1_id:
+            raise ValidationError(f"هیچ استاد راهنما اولی برای این نشست انتخاب نشده است !")
+        if not self.graduate_monitor_id:
+            raise ValidationError(f"هیچ ناظر تحصیلات تکمیلی برای این نشست انتخاب نشده است !")
+
         # Check if the session is being updated
         is_updating = self.pk is not None
 

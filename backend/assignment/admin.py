@@ -1,4 +1,5 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from jalali_date import datetime2jalali
 
 from .models import Session
@@ -269,9 +270,19 @@ class SessionAdmin(admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
-    # Custom form validation for saving the object
     def save_model(self, request, obj, form, change):
-        # You can perform any custom save logic here
+        # Check if the schedule is set
+        if not obj.schedule:
+            # Add an error message
+            self.message_user(
+                request,
+                _("The session cannot be saved because it does not have an associated schedule."),
+                level=messages.ERROR
+            )
+            raise ValidationError(
+                {"schedule": _("You must assign a schedule before saving this session.")}
+            )
+        # Save the object if the schedule exists
         super().save_model(request, obj, form, change)
 
 # Register the Session model with the custom admin class
