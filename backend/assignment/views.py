@@ -7,7 +7,6 @@ from itertools import chain
 
 def filter_supervisors(request, schedule_id, sessionId):
     schedule = get_object_or_404(Schedule, id=schedule_id)
-    unique_supervisors = []
     if sessionId == 'add':
         # Query supervisors not assigned to the same schedule in other sessions
         supervisors_not_in_other_sessions = Teacher.objects.filter(
@@ -42,3 +41,34 @@ def filter_supervisors(request, schedule_id, sessionId):
     # Prepare response with supervisor data
     supervisor_data = [{"id": supervisor.id, "name": supervisor.user.name} for supervisor in unique_supervisors]
     return JsonResponse({"supervisors": supervisor_data})
+
+def filter_graduate_monitor(request, schedule_id, sessionId):
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    if sessionId == 'add':
+        # Query supervisors not assigned to the same schedule in other sessions
+        graduateMonitors_not_in_other_sessions = Teacher.objects.filter(
+            ~Q(graduate_monitor_assignments__schedule=schedule)
+        )
+        combined_graduateMonitors = list(chain(graduateMonitors_not_in_other_sessions))
+        unique_graduateMonitors = {graduateMonitor.id: graduateMonitor for
+                                   graduateMonitor in combined_graduateMonitors}.values()
+    else:
+        # Query supervisors assigned to the current session's schedule
+        graduateMonitors_in_current_session = Teacher.objects.filter(
+            Q(graduate_monitor_assignments__schedule=schedule, graduate_monitor_assignments__id=sessionId)
+        )
+
+        # Query supervisors not assigned to the same schedule in other sessions
+        graduateMonitors_not_in_other_sessions = Teacher.objects.filter(
+            ~Q(graduate_monitor_assignments__schedule=schedule)
+        )
+
+        # Combine results and remove duplicates
+        combined_graduateMonitors = list(chain(graduateMonitors_in_current_session,
+                                               graduateMonitors_not_in_other_sessions))
+        unique_graduateMonitors = {graduateMonitor.id: graduateMonitor for graduateMonitor in combined_graduateMonitors}.values()
+
+    # Prepare response with supervisor data
+    graduateMonitor_data = [{"id": graduateMonitor.id, "name": graduateMonitor.user.name} for
+                            graduateMonitor in unique_graduateMonitors]
+    return JsonResponse({"graduateMonitors": graduateMonitor_data})

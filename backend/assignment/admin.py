@@ -180,7 +180,8 @@ class SessionAdmin(admin.ModelAdmin):
     )
 
     class Media:
-        js = ('js/filter_supervisors.js',)
+        js = ('js/admin_assignment_session/filter_supervisors.js',
+              'js/admin_assignment_session/filter_graduate_monitor.js',)
 
     def get_form(self, request, obj=None, **kwargs):
         """
