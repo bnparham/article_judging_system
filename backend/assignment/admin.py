@@ -192,34 +192,11 @@ class SessionAdmin(admin.ModelAdmin):
             current_session_schedule = obj.schedule  # Current session's schedule
             current_session_id = obj.pk  # Current session ID
 
-            supervisor_fields = ['supervisor1', 'supervisor2', 'supervisor3', 'supervisor4']
-            for field_name in supervisor_fields:
-                field = form.base_fields[field_name]
+            self.filter_supervisor_fields_queryset(request, obj, current_session_schedule,
+                                                   current_session_id, form, **kwargs)
 
-                query_assigned_to_current = field.queryset.filter(
-                    Q(supervisor1_assignments__schedule=current_session_schedule,
-                      supervisor1_assignments__id=current_session_id) |
-                    Q(supervisor2_assignments__schedule=current_session_schedule,
-                      supervisor2_assignments__id=current_session_id) |
-                    Q(supervisor3_assignments__schedule=current_session_schedule,
-                      supervisor3_assignments__id=current_session_id) |
-                    Q(supervisor4_assignments__schedule=current_session_schedule,
-                      supervisor4_assignments__id=current_session_id)
-                )
-
-                # Query to exclude supervisors assigned to the same schedule in other sessions
-                query_not_in_other_sessions = field.queryset.filter(
-                    ~Q(supervisor1_assignments__schedule=current_session_schedule) &
-                    ~Q(supervisor2_assignments__schedule=current_session_schedule) &
-                    ~Q(supervisor3_assignments__schedule=current_session_schedule) &
-                    ~Q(supervisor4_assignments__schedule=current_session_schedule)
-                )
-
-                # Combine the two querysets and remove duplicates
-                combined_queryset = query_assigned_to_current | query_not_in_other_sessions
-
-                # Assign the combined queryset to the field
-                field.queryset = combined_queryset.distinct()
+            self.filter_graduate_monitor_fields_queryset(request, obj, current_session_schedule,
+                                                   current_session_id, form, **kwargs)
 
         return form
 
@@ -271,19 +248,63 @@ class SessionAdmin(admin.ModelAdmin):
             return "ثبت نشده است"
 
     def save_model(self, request, obj, form, change):
-        # Check if the schedule is set
-        if not obj.schedule:
-            # Add an error message
-            self.message_user(
-                request,
-                _("The session cannot be saved because it does not have an associated schedule."),
-                level=messages.ERROR
-            )
-            raise ValidationError(
-                {"schedule": _("You must assign a schedule before saving this session.")}
-            )
         # Save the object if the schedule exists
         super().save_model(request, obj, form, change)
+
+    def filter_supervisor_fields_queryset(self, request, obj,
+                                          current_session_schedule,
+                                          current_session_id, form,
+                                          **kwargs):
+        supervisor_fields = ['supervisor1', 'supervisor2', 'supervisor3', 'supervisor4']
+        for field_name in supervisor_fields:
+            field = form.base_fields[field_name]
+            query_assigned_to_current = field.queryset.filter(
+                Q(supervisor1_assignments__schedule=current_session_schedule,
+                  supervisor1_assignments__id=current_session_id) |
+                Q(supervisor2_assignments__schedule=current_session_schedule,
+                  supervisor2_assignments__id=current_session_id) |
+                Q(supervisor3_assignments__schedule=current_session_schedule,
+                  supervisor3_assignments__id=current_session_id) |
+                Q(supervisor4_assignments__schedule=current_session_schedule,
+                  supervisor4_assignments__id=current_session_id)
+            )
+
+            # Query to exclude supervisors assigned to the same schedule in other sessions
+            query_not_in_other_sessions = field.queryset.filter(
+                ~Q(supervisor1_assignments__schedule=current_session_schedule) &
+                ~Q(supervisor2_assignments__schedule=current_session_schedule) &
+                ~Q(supervisor3_assignments__schedule=current_session_schedule) &
+                ~Q(supervisor4_assignments__schedule=current_session_schedule)
+            )
+
+            # Combine the two querysets and remove duplicates
+            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
+
+            # Assign the combined queryset to the field
+            field.queryset = combined_queryset.distinct()
+
+    def filter_graduate_monitor_fields_queryset(self, request, obj,
+                                          current_session_schedule,
+                                          current_session_id, form,
+                                          **kwargs):
+        graduate_monitor_fields = ['graduate_monitor']
+        for field_name in graduate_monitor_fields:
+            field = form.base_fields[field_name]
+            query_assigned_to_current = field.queryset.filter(
+                Q(graduate_monitor_assignments__schedule=current_session_schedule,
+                  graduate_monitor_assignments__id=current_session_id)
+            )
+
+            # Query to exclude supervisors assigned to the same schedule in other sessions
+            query_not_in_other_sessions = field.queryset.filter(
+                ~Q(graduate_monitor_assignments__schedule=current_session_schedule)
+            )
+
+            # Combine the two querysets and remove duplicates
+            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
+
+            # Assign the combined queryset to the field
+            field.queryset = combined_queryset.distinct()
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
