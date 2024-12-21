@@ -124,18 +124,66 @@ class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
             )
         elif self.value() == '1':
             return queryset.filter(
-                supervisor3__isnull=True,
-                supervisor4__isnull=False,
-            )
-        elif self.value() == '1':
-            return queryset.filter(
-                supervisor3__isnull=False,
-                supervisor4__isnull=True,
+                Q(supervisor3__isnull=True,
+                supervisor4__isnull=False,) |
+                Q(supervisor3__isnull=False,
+                supervisor4__isnull=True,)
             )
         elif self.value() == '2':
             return queryset.filter(
                 supervisor3__isnull=False,
                 supervisor4__isnull=False,
+            )
+        return queryset
+
+class JudgesCountFilter(admin.SimpleListFilter):
+    title = _('تعداد داوران')
+    parameter_name = 'Judges_count'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('0', _('بدون داور')),
+            ('1', _('یک داور')),
+            ('2', _('دو داور')),
+            ('3', _('سه داور')),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == '0':
+            return queryset.filter(
+                judge1__isnull=True,
+                judge2__isnull=True,
+                judge3__isnull=True,
+            )
+        elif self.value() == '1':
+            return queryset.filter(
+                Q(judge1__isnull=False,
+                  judge2__isnull=True,
+                  judge3__isnull=True,) |
+                Q(judge1__isnull=True,
+                  judge2__isnull=False,
+                  judge3__isnull=True,) |
+                Q(judge1__isnull=True,
+                  judge2__isnull=True,
+                  judge3__isnull=False,)
+            )
+        elif self.value() == '2':
+            return queryset.filter(
+                Q(judge1__isnull=False,
+                  judge2__isnull=False,
+                  judge3__isnull=True,) |
+                Q(judge1__isnull=False,
+                  judge2__isnull=True,
+                  judge3__isnull=False,) |
+                Q(judge1__isnull=True,
+                  judge2__isnull=False,
+                  judge3__isnull=False,)
+            )
+        elif self.value() == '3':
+            return queryset.filter(
+                Q(judge1__isnull=False,
+                  judge2__isnull=False,
+                  judge3__isnull=False,)
             )
         return queryset
 
@@ -153,7 +201,8 @@ class SessionAdmin(admin.ModelAdmin):
     list_filter = ('session_status', MonthFilter, MonthFilter_created_at,
                    MonthFilter_updated_at,
                    SupervisorCountFilter,
-                   Consultant_ProfessorCountFilter)
+                   Consultant_ProfessorCountFilter,
+                   JudgesCountFilter)
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali', 'is_active')
