@@ -156,7 +156,7 @@ class SessionAdmin(admin.ModelAdmin):
                    Consultant_ProfessorCountFilter)
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
-    readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali')
+    readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali', 'is_active')
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
@@ -170,7 +170,8 @@ class SessionAdmin(admin.ModelAdmin):
             'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
                        'supervisor4', 'graduate_monitor',
                        'judge1', 'judge2', 'judge3',
-                       'session_status')
+                       'session_status',
+                       'is_active',)
         }),
         (_('D'), {
             'fields': ('get_created_at_jalali',
@@ -181,7 +182,8 @@ class SessionAdmin(admin.ModelAdmin):
 
     class Media:
         js = ('js/admin_assignment_session/filter_supervisors.js',
-              'js/admin_assignment_session/filter_graduate_monitor.js',)
+              'js/admin_assignment_session/filter_graduate_monitor.js',
+              'js/admin_assignment_session/filter_judges.js',)
 
     def get_form(self, request, obj=None, **kwargs):
         """
@@ -197,6 +199,9 @@ class SessionAdmin(admin.ModelAdmin):
                                                    current_session_id, form, **kwargs)
 
             self.filter_graduate_monitor_fields_queryset(request, obj, current_session_schedule,
+                                                   current_session_id, form, **kwargs)
+
+            self.filter_judges_fields_queryset(request, obj, current_session_schedule,
                                                    current_session_id, form, **kwargs)
 
         return form
@@ -217,7 +222,8 @@ class SessionAdmin(admin.ModelAdmin):
                     'student', 'supervisor1', 'supervisor2', 'supervisor3',
                     'supervisor4', 'graduate_monitor',
                     'judge1', 'judge2', 'judge3',
-                    'session_status')
+                    'session_status',
+                    )
                 }),
             )
         # Show all fieldsets (default) in the Change view
@@ -299,6 +305,35 @@ class SessionAdmin(admin.ModelAdmin):
             # Query to exclude supervisors assigned to the same schedule in other sessions
             query_not_in_other_sessions = field.queryset.filter(
                 ~Q(graduate_monitor_assignments__schedule=current_session_schedule)
+            )
+
+            # Combine the two querysets and remove duplicates
+            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
+
+            # Assign the combined queryset to the field
+            field.queryset = combined_queryset.distinct()
+
+    def filter_judges_fields_queryset(self, request, obj,
+                                          current_session_schedule,
+                                          current_session_id, form,
+                                          **kwargs):
+        judges_fields = ['judge1', 'judge2', 'judge3']
+        for field_name in judges_fields:
+            field = form.base_fields[field_name]
+            query_assigned_to_current = field.queryset.filter(
+                Q(judge1_assignments__schedule=current_session_schedule,
+                  judge1_assignments__id=current_session_id) |
+                Q(judge2_assignments__schedule=current_session_schedule,
+                  judge2_assignments__id=current_session_id) |
+                Q(judge3_assignments__schedule=current_session_schedule,
+                  judge3_assignments__id=current_session_id)
+            )
+
+            # Query to exclude supervisors assigned to the same schedule in other sessions
+            query_not_in_other_sessions = field.queryset.filter(
+                ~Q(judge1_assignments__schedule=current_session_schedule) &
+                ~Q(judge2_assignments__schedule=current_session_schedule) &
+                ~Q(judge3_assignments__schedule=current_session_schedule)
             )
 
             # Combine the two querysets and remove duplicates
