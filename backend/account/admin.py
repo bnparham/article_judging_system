@@ -230,7 +230,7 @@ class StudentAdmin(admin.ModelAdmin):
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_student(self, obj):
-        return format_html('<a href="{}">ویرایش دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
+        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
     edit_student.short_description = "اطلاعات کامل دانشجو"
 
 
