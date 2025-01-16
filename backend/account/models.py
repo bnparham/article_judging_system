@@ -287,6 +287,10 @@ class Student(models.Model):
         verbose_name = "دانشجو"
         verbose_name_plural = "لیست دانشجویان"
 
+    def save(self, *args, **kwargs):
+        if self.pk:  # Check if the object already exists in the database
+            raise ValueError("Student object cannot be modified.")
+        super().save(*args, **kwargs)
 
 class Teacher(models.Model):
     first_name = models.CharField(_("نام"), max_length=150, blank=True)
