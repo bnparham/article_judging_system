@@ -77,6 +77,41 @@ class Session(models.Model):
         help_text="ناظر تحصیلات تکمیلی را انتخاب کنید (اجباری)"
     )
 
+    judge1 = models.ForeignKey(
+        'account.Teacher',
+        on_delete=models.CASCADE,
+        related_name="judge1_assignments",
+        verbose_name="داور اول",
+        blank=True,
+        null=True,
+        help_text="داور اول را انتخاب کنید (انتخاب اختیاری)"
+    )
+    judge2 = models.ForeignKey(
+        'account.Teacher',
+        on_delete=models.CASCADE,
+        related_name="judge3_assignments",
+        verbose_name="داور دوم",
+        blank=True,
+        null=True,
+        help_text="داور دوم را انتخاب کنید (انتخاب اختیاری)"
+    )
+    judge3 = models.ForeignKey(
+        'account.Teacher',
+        on_delete=models.CASCADE,
+        related_name="judge2_assignments",
+        verbose_name="داور سوم",
+        blank=True,
+        null=True,
+        help_text="داور سوم را انتخاب کنید (انتخاب اختیاری)"
+    )
+
+    is_active = models.BooleanField(
+        default=False,
+        editable=False,
+        verbose_name="آیا این جلسه قابل برگزاری هست یا خیر",
+        help_text="چناچه داور یا داوران به این نشست تخصیص داده نشود این نشست قابل برگزاری نخواهد بود"
+    )
+
     # Optional: A date when the assignment should be completed or submitted
     session_status = models.BooleanField(
         default=False,
@@ -100,66 +135,142 @@ class Session(models.Model):
         verbose_name = 'نشست'
         verbose_name_plural = 'نشست ها'
 
+    def save(self, *args, **kwargs):
+        # Automatically set is_active based on presence of any judge
+        self.is_active = any([self.judge1, self.judge2, self.judge3])
+        super().save(*args, **kwargs)
+
     def clean(self):
-        # Check if the session is being created or updated
+
+        if not self.schedule_id:
+            raise ValidationError(f"هیچ زمانبندی برای این نشست انتخاب نشده است !")
+        if not self.title:
+            raise ValidationError(f"هیچ عنوانی برای این نشست انتخاب نشده است !")
+        if not self.student:
+            raise ValidationError(f"هیچ دانشجویی برای این نشست انتخاب نشده است !")
+        if not self.supervisor1_id:
+            raise ValidationError(f"هیچ استاد راهنما اولی برای این نشست انتخاب نشده است !")
+        if not self.graduate_monitor_id:
+            raise ValidationError(f"هیچ ناظر تحصیلات تکمیلی برای این نشست انتخاب نشده است !")
+
+        # Check if the session is being updated
         is_updating = self.pk is not None
 
-        # Check if the professor, supervisors, or graduate monitor are already assigned to another session at the same schedule
-        conflicting_assignments = Session.objects.filter(
-            schedule=self.schedule
-        )
-
+        # Query conflicting sessions based on the same schedule
+        conflicting_sessions = Session.objects.filter(schedule=self.schedule)
         if is_updating:
-            # If updating, exclude the current session from the conflict check
-            conflicting_assignments = conflicting_assignments.exclude(id=self.id)
+            conflicting_sessions = conflicting_sessions.exclude(id=self.id)
 
-        # Check for conflict with the student's previous sessions
-        if conflicting_assignments.filter(student=self.student).exists():
-            raise ValidationError(f"دانشجو {self.student}  در همین زمان در نشست دیگری حضور دارد ")
+        # Check for conflicts with the student
+        if conflicting_sessions.filter(student=self.student).exists():
+            raise ValidationError(f"دانشجو {self.student} در همین زمان در نشست دیگری حضور دارد.")
 
-        # Check for conflict with supervisor1, supervisor2, supervisor3, supervisor4
-
-
+        # Check for conflicts with supervisors and graduate monitor
         supervisors = [self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4]
-        for supervisor in supervisors:
-            # Check for conflict with graduate monitor with other supervisors
-            GM_check = conflicting_assignments.filter(graduate_monitor=supervisor)
-            print(GM_check)
-            CA_1 = conflicting_assignments.filter(supervisor1=supervisor)
-            if supervisor and GM_check.exists():
-                raise ValidationError(
-                    f"استاد {supervisor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری ({GM_check.last().title} - {GM_check.last().schedule}) حضور دارد ")
-            if supervisor and CA_1.exists():
-                raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد راهنما اول در همین زمان در نشست دیگری ({CA_1.last().title} - {CA_1.last().schedule}) حضور دارد ")
-            CA_2 = conflicting_assignments.filter(supervisor2=supervisor)
-            if supervisor and CA_2.exists():
-                raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد راهنما دوم در همین زمان در نشست دیگری ({CA_2.last().title} - {CA_2.last().schedule}) حضور دارد ")
-            CA_3 = conflicting_assignments.filter(supervisor3=supervisor)
-            if supervisor and CA_3.exists():
-                raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد مشاور اول در همین زمان در نشست دیگری ({CA_3.last().title} - {CA_3.last().schedule}) حضور دارد ")
-            CA_4 = conflicting_assignments.filter(supervisor4=supervisor)
-            if supervisor and CA_4.exists():
-                raise ValidationError(
-                    f"استاد {supervisor} به عنوان استاد مشاور دوم در همین زمان در نشست دیگری ({CA_4.last().title} - {CA_4.last().schedule}) حضور دارد ")
+        # Check for conflicts judges  with supervisors and graduate monitor
+        judges = [self.judge1, self.judge2, self.judge3]
 
-        # Check for conflict with graduate monitor with other graduate monitor
-        CA_5 = conflicting_assignments.filter(graduate_monitor=self.graduate_monitor)
-        if self.graduate_monitor and CA_5.exists():
+        for judge in judges:
+            if judge:
+                # Conflict with supervisor roles in other sessions
+                conflict_roles = conflicting_sessions.filter(
+                    models.Q(supervisor1=judge) |
+                    models.Q(supervisor2=judge) |
+                    models.Q(supervisor3=judge) |
+                    models.Q(supervisor4=judge)
+                )
+                if conflict_roles.exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب داور ! "
+                        f"استاد {judge} در همین زمان به عنوان استاد راهنما یا مشاور در نشست دیگری "
+                        f"({conflict_roles.last().title} - {conflict_roles.last().schedule}) حضور دارد."
+                    )
+
+                # Conflict with judge roles in other sessions
+                conflict_roles_2 = conflicting_sessions.filter(
+                    models.Q(judge1=judge) |
+                    models.Q(judge2=judge) |
+                    models.Q(judge3=judge)
+                )
+                if conflict_roles_2.exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب داور ! "
+                        f"استاد {judge} در همین زمان به عنوان داور در نشست دیگری "
+                        f"حضور دارد ({conflict_roles_2.last().title} - {conflict_roles_2.last().schedule})"
+                    )
+
+                # Conflict with graduate monitor
+                if conflicting_sessions.filter(graduate_monitor=judge).exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب داور ! "
+                        f"استاد {judge} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری حضور دارد."
+                    )
+
+        for supervisor in supervisors:
+            if supervisor:
+                # Conflict with supervisor roles in other sessions
+                conflict_roles = conflicting_sessions.filter(
+                    models.Q(supervisor1=supervisor) |
+                    models.Q(supervisor2=supervisor) |
+                    models.Q(supervisor3=supervisor) |
+                    models.Q(supervisor4=supervisor)
+                )
+                if conflict_roles.exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب استاد راهنما یا استاد مشاور ! "
+                        f"استاد {supervisor} در همین زمان به عنوان استاد راهنما یا مشاور در نشست دیگری "
+                        f"({conflict_roles.last().title} - {conflict_roles.last().schedule}) حضور دارد."
+                    )
+
+                # Conflict with judge roles in other sessions
+                conflict_roles_2 = conflicting_sessions.filter(
+                    models.Q(judge1=supervisor) |
+                    models.Q(judge2=supervisor) |
+                    models.Q(judge3=supervisor)
+                )
+                if conflict_roles_2.exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب استاد راهنما یا استاد مشاور ! "
+                        f"استاد {supervisor} در همین زمان به عنوان داور در نشست دیگری "
+                        f"حضور دارد ({conflict_roles_2.last().title} - {conflict_roles_2.last().schedule})"
+                    )
+
+                # Conflict with graduate monitor
+                if conflicting_sessions.filter(graduate_monitor=supervisor).exists():
+                    raise ValidationError(
+                        f"خطا در انتخاب استاد راهنما یا استاد مشاور ! "
+                        f"استاد {supervisor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری حضور دارد."
+                    )
+
+        # Conflict with graduate monitor
+        if conflicting_sessions.filter(graduate_monitor=self.graduate_monitor).exists():
             raise ValidationError(
-                f"استاد {self.graduate_monitor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری ({CA_4.last().title} - {CA_4.last().schedule}) حضور دارد "
+                f"خطا در انتخاب ناظر تحصیلات تکمیلی ! "
+                f"استاد {self.graduate_monitor} به عنوان ناظر تحصیلات تکمیلی در همین زمان در نشست دیگری حضور دارد."
             )
 
-        # Ensure that a supervisor cannot also be the graduate monitor
+        # Ensure graduate monitor is not also a supervisor
         if self.graduate_monitor in supervisors:
-            raise ValidationError("ناظر تکمیلی نمیتواند به عنوان استاد راهنما یا استاد مشاور حضور داشته باشد !")
+            raise ValidationError(
+                f"خطا در انتخاب ناظر تحصیلات تکمیلی ! "
+                f"ناظر تحصیلات تکمیلی نمی‌تواند به عنوان استاد راهنما یا مشاور انتخاب شود."
+                 )
 
-        # Ensure that no supervisor is assigned more than once
-        non_null_supervisors = [s for s in supervisors if s is not None]
+        # Ensure no supervisor is assigned multiple roles in the same session
+        non_null_supervisors = [supervisor for supervisor in supervisors if supervisor is not None]
         if len(set(non_null_supervisors)) != len(non_null_supervisors):
-            raise ValidationError("هر استاد راهنما نمی‌تواند بیش از یک بار به عنوان استاد راهنما یا مشاور انتخاب شود.")
+            raise ValidationError(
+                f"خطا در انتخاب استاد راهنما یا استاد مشاور ! "
+                f"هر استاد نمی‌تواند بیش از یک بار به عنوان استاد راهنما یا مشاور انتخاب شود."
+            )
+
+        # Ensure no judge is assigned multiple roles in the same session
+        non_null_judges = [judge for judge in judges if judge is not None]
+        if len(set(non_null_judges)) != len(non_null_judges):
+            raise ValidationError(
+                f"خطا در انتخاب داور ! "
+                f"هر استاد نمی‌تواند بیش از یک بار به عنوان داور انتخاب شود."
+            )
 
     def __str__(self):
         return f"{self.title} | {self.schedule}"

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6c93ce4c-0a2e-4e71-a0a4-25f51f3f76f4" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/backend/account/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/account/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assignment/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/assignment/admin.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,9 +31,15 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/backend/db.sqlite3" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\Parham\Projects\article_judging_system\backend\static\js\admin_assignment_session" />
+      <recent name="D:\Parham\Projects\article_judging_system\backend\static\js" />
+    </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -46,6 +52,8 @@
       <workItem from="1731680525392" duration="10407000" />
       <workItem from="1731691174295" duration="1186000" />
       <workItem from="1731696027113" duration="3358000" />
+      <workItem from="1734720826893" duration="9304000" />
+      <workItem from="1734773031584" duration="7717000" />
     </task>
     <servers />
   </component>
