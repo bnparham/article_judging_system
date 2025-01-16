@@ -1,10 +1,15 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
-from jalali_date import datetime2jalali
+
+from jalali_date import datetime2jalali, date2jalali
+from jalali_date.admin import ModelAdminJalaliMixin
 
 from .models import Session
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
+from django import forms
+from jalali_date.widgets import AdminJalaliDateWidget
+from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 
 class MonthFilter(admin.SimpleListFilter):
     title = _('بر اساس زمانبدی نشست')
@@ -187,15 +192,33 @@ class JudgesCountFilter(admin.SimpleListFilter):
             )
         return queryset
 
-class SessionAdmin(admin.ModelAdmin):
+class SessionAdminForm(forms.ModelForm):
+    class Meta:
+        model = Session
+        fields = '__all__'
+        widgets = {
+            'date': AdminJalaliDateWidget,  # Jalali date picker
+            'start_time': TimePickerInput,  # Time picker
+            'end_time': TimePickerInput,  # Time picker
+        }
+
+class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
+    form = SessionAdminForm
     # Fields to be displayed in the list view
-    list_display = ('title', 'student', 'schedule', 'supervisor1',
-                    'supervisor2', 'supervisor3', 'supervisor4',
-                    'graduate_monitor', 'judge1', 'judge2', 'judge3', 'session_status',
-                    'get_created_at_jalali', 'get_updated_at_jalali')
+    list_display = ('student', 'schedule', 'get_date_jalali',
+                    'get_start_time_persian', 'get_end_time_persian',
+                    'session_status',
+                    'get_updated_at_jalali')
 
     # Fields to be used for searching in the admin interface
-    search_fields = ('title', 'student__user__first_name', 'student__user__last_name', 'supervisor1__user__first_name', 'supervisor1__user__last_name', 'supervisor2__user__first_name', 'supervisor2__user__last_name', 'supervisor3__user__first_name', 'supervisor3__user__last_name', 'supervisor4__user__first_name', 'supervisor4__user__last_name')
+    search_fields = ('student__first_name', 'student__last_name', 'supervisor1__first_name',
+                     'supervisor1__last_name',
+                     'supervisor2__first_name',
+                     'supervisor2__last_name',
+                     'supervisor3__first_name',
+                     'supervisor3__last_name',
+                     'supervisor4__first_name',
+                     'supervisor4__last_name')
 
     # Filters to narrow down results in the list view
     list_filter = ('session_status', 'is_active', MonthFilter, MonthFilter_created_at,
@@ -209,11 +232,8 @@ class SessionAdmin(admin.ModelAdmin):
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
-        (_('A'), {
-            'fields': ('title', 'description',)
-        }),
         (_('B'), {
-            'fields': ('schedule',)
+            'fields': ('schedule', 'date', 'start_time', 'end_time')
         }),
         (_('C'), {
             'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
@@ -227,12 +247,17 @@ class SessionAdmin(admin.ModelAdmin):
                        'get_updated_at_jalali',
                        )
         }),
+        (_('E'), {
+            'fields': ('description',
+                       )
+        })
     )
 
     class Media:
         js = ('js/admin_assignment_session/filter_supervisors.js',
               'js/admin_assignment_session/filter_graduate_monitor.js',
               'js/admin_assignment_session/filter_judges.js',)
+
 
     def get_form(self, request, obj=None, **kwargs):
         """
@@ -260,11 +285,8 @@ class SessionAdmin(admin.ModelAdmin):
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
             return (
-                (_('A'), {
-                    'fields': ('title', 'description',)
-                }),
                 (_('B'), {
-                    'fields': ('schedule',)
+                    'fields': ('schedule', 'date', 'start_time', 'end_time')
                 }),
                 (_('C'), {
                     'fields': (
@@ -274,12 +296,13 @@ class SessionAdmin(admin.ModelAdmin):
                     'session_status',
                     )
                 }),
+                (_('D'), {
+                    'fields': ('description',
+                               )
+                })
             )
         # Show all fieldsets (default) in the Change view
         return super().get_fieldsets(request, obj)
-
-    # Prepopulate fields if needed (for example, auto-filling some fields)
-    # prepopulated_fields = {'description': ('title',)}
 
 
     def get_readonly_fields(self, request, obj=None):
@@ -302,6 +325,72 @@ class SessionAdmin(admin.ModelAdmin):
             return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
+
+    @admin.display(description='تاریخ', ordering='date')
+    def get_date_jalali(self, obj):
+        if obj.date:
+            return date2jalali(obj.date).strftime('%a, %d %b %Y')
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description="زمان شروع", ordering="satrt_time")
+    def get_start_time_persian(self, obj):
+        if obj.start_time:
+            # Convert time to Persian 12-hour format
+            time = obj.start_time
+            hour = time.hour
+            minute = f'{time.minute}'.zfill(2)
+
+            # Determine AM/PM and adjust the hour
+            match hour:
+                case 0:
+                    period = "بامداد"
+                    hour = 12
+                case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11:
+                    period = "صبح"
+                case 12:
+                    period = "ظهر"
+                    hour = 12
+                case 13 | 14 | 15 | 16:
+                    period = "ظهر"
+                    hour -= 12
+                case _:
+                    period = "عصر"
+                    hour -= 12
+
+            return f"{hour}:{minute} ظهر "
+        else:
+            return "ثبت نشده است"
+
+    @admin.display(description="زمان پایان", ordering="end_time")
+    def get_end_time_persian(self, obj):
+        if obj.end_time:
+            # Convert time to Persian 12-hour format
+            time = obj.end_time
+            hour = time.hour
+            minute = f'{time.minute}'.zfill(2)
+
+            # Determine AM/PM and adjust the hour
+            match hour:
+                case 0:
+                    period = "بامداد"
+                    hour = 12
+                case 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11:
+                    period = "صبح"
+                case 12:
+                    period = "ظهر"
+                    hour = 12
+                case 13 | 14 | 15 | 16:
+                    period = "ظهر"
+                    hour -= 12
+                case _:
+                    period = "عصر"
+                    hour -= 12
+
+            return f"{hour}:{minute} ظهر "
+        else:
+            return "ثبت نشده است"
+
 
     def save_model(self, request, obj, form, change):
         # Save the object if the schedule exists

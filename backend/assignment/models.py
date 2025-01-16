@@ -1,18 +1,14 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
+
 
 class Session(models.Model):
-    title = models.CharField(
-        max_length=255,
-        help_text="عنوان نشست را وارد کنید",
-        verbose_name="عنوان نشست"
-    )
-
     description = models.TextField(
         blank=True,
         null=True,
-        help_text="توضیحات نشست را وارد کنید (اختیاری)",
-        verbose_name="نشست"
+        help_text="توضیحات پیرامون نشست را وارد کنید (اختیاری)",
+        verbose_name="توضیحات جلسه"
     )
 
     schedule = models.ForeignKey(
@@ -21,6 +17,19 @@ class Session(models.Model):
         related_name='assignments',
         verbose_name="زمانبندی",
         help_text="انتخاب برنامه تعریف شده از بخش داشبورد زمانبدی"
+    )
+
+    date = models.DateField(
+        help_text="تاریخ برنامه",
+        verbose_name='تاریخ',
+    )
+    start_time = models.TimeField(
+        help_text="زمان شروع را تعیین کنید",
+        verbose_name='زمان شروع'
+    )
+    end_time = models.TimeField(
+        help_text="زمان پایان را تعیین کنید",
+        verbose_name='زمان پایان'
     )
 
     student = models.ForeignKey(
@@ -134,6 +143,10 @@ class Session(models.Model):
     class Meta:
         verbose_name = 'جلسه دفاع پایان نامه / رساله'
         verbose_name_plural = 'جلسات دفاع پایان نامه / رساله'
+        constraints = [
+            models.UniqueConstraint(fields=['start_time'], name='unique_start_time')
+        ]
+
 
     def save(self, *args, **kwargs):
         # Automatically set is_active based on presence of any judge
@@ -144,8 +157,6 @@ class Session(models.Model):
 
         if not self.schedule_id:
             raise ValidationError(f"هیچ زمانبندی برای این نشست انتخاب نشده است !")
-        if not self.title:
-            raise ValidationError(f"هیچ عنوانی برای این نشست انتخاب نشده است !")
         if not self.student:
             raise ValidationError(f"هیچ دانشجویی برای این نشست انتخاب نشده است !")
         if not self.supervisor1_id:
@@ -156,10 +167,23 @@ class Session(models.Model):
         # Check if the session is being updated
         is_updating = self.pk is not None
 
+        # Check half-open interval validity
+        if self.start_time >= self.end_time:
+            raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
+
         # Query conflicting sessions based on the same schedule
-        conflicting_sessions = Session.objects.filter(schedule=self.schedule)
+        conflicting_sessions = Session.objects.filter(schedule=self.schedule, date=self.date)
         if is_updating:
             conflicting_sessions = conflicting_sessions.exclude(id=self.id)
+
+        # Check for overlapping intervals
+        overlapping_programs = conflicting_sessions.filter(
+            Q(start_time__lt=self.end_time) & Q(end_time__gt=self.start_time)
+        )
+
+        if overlapping_programs.exists():
+            raise ValidationError("The time interval overlaps with an existing program.")
+
 
         # Check for conflicts with the student
         if conflicting_sessions.filter(student=self.student).exists():
@@ -273,4 +297,4 @@ class Session(models.Model):
             )
 
     def __str__(self):
-        return f"{self.title} | {self.schedule}"
+        return f"{self.student.name} | {self.schedule} جلسه دفاعیه : "

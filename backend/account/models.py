@@ -274,10 +274,10 @@ class Student(models.Model):
 
     def __str__(self):
         if self.gender == "Male":
-            name = f'{self.name} آقای '
+            name = f'آقای {self.name} '
         elif self.gender == "Female":
-            name = f'{self.name} خانم '
-        return f"| مقطع تحصیلی {self.ROLES_DICT[self.role]}{self.student_number} با شماره دانشجویی {name}"
+            name = f'خانم {self.name}  '
+        return f"{name}"
 
     @property
     def name(self):
