@@ -233,7 +233,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Fieldsets to group fields logically in the form view
     fieldsets = (
         (_('B'), {
-            'fields': ('schedule', 'date', 'start_time', 'end_time')
+            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
         }),
         (_('C'), {
             'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
@@ -286,7 +286,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             # Exclude the "سایر اطلاعات" fieldset
             return (
                 (_('B'), {
-                    'fields': ('schedule', 'date', 'start_time', 'end_time')
+                    'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
                 }),
                 (_('C'), {
                     'fields': (

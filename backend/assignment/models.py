@@ -4,6 +4,18 @@ from django.db.models import Q
 
 
 class Session(models.Model):
+
+    CLASS_CHOICES = [
+        ('1', 'کلاس شماره 1'),
+        ('2', 'کلاس شماره 2'),
+        ('3', 'کلاس شماره 3'),
+        ('4', 'کلاس شماره 4'),
+        ('5', 'کلاس شماره 5'),
+        ('6', 'کلاس شماره 6'),
+        ('7', 'کلاس شماره 7'),
+        ('8', 'کلاس شماره 8'),
+    ]
+
     description = models.TextField(
         blank=True,
         null=True,
@@ -30,6 +42,14 @@ class Session(models.Model):
     end_time = models.TimeField(
         help_text="زمان پایان را تعیین کنید",
         verbose_name='زمان پایان'
+    )
+
+    class_number = models.CharField(
+        max_length=1,
+        choices=CLASS_CHOICES,
+        verbose_name="کلاس",
+        help_text="انتخاب کلاس",
+        default=CLASS_CHOICES[0],
     )
 
     student = models.ForeignKey(
@@ -172,7 +192,9 @@ class Session(models.Model):
             raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
 
         # Query conflicting sessions based on the same schedule
-        conflicting_sessions = Session.objects.filter(schedule=self.schedule, date=self.date)
+        conflicting_sessions = Session.objects.filter(schedule=self.schedule,
+                                                      date=self.date,
+                                                      class_number=self.class_number)
         if is_updating:
             conflicting_sessions = conflicting_sessions.exclude(id=self.id)
 
@@ -188,6 +210,10 @@ class Session(models.Model):
         # Check for conflicts with the student
         if conflicting_sessions.filter(student=self.student).exists():
             raise ValidationError(f"دانشجو {self.student} در همین زمان در نشست دیگری حضور دارد.")
+
+        # Check for class_number conflicts
+        if conflicting_sessions.filter(class_number=self.class_number).exists():
+            raise ValidationError(f"این کلاس در همین زمان در نشست دیگری اشغال است")
 
         # Check for conflicts with supervisors and graduate monitor
         supervisors = [self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4]
