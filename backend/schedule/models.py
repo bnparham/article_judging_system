@@ -41,3 +41,5 @@ class Schedule(models.Model):
     class Meta:
         verbose_name = "نیم سال تحصیلی"
         verbose_name_plural = "نیم سال های تحصیلی"
+        constraints = [
+            models.UniqueConstraint(fields=['year', 'semester'], name='unique_year_semester',)]
