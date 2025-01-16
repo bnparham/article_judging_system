@@ -5,7 +5,6 @@ from jalali_date import datetime2jalali
 from .models import User, Group, GroupManager, Student, Teacher
 from django.utils.translation import gettext_lazy as _
 
-
 class MonthFilter(admin.SimpleListFilter):
     title = _('ماه')
     parameter_name = 'month'

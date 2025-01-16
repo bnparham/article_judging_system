@@ -13,6 +13,8 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from .validators import is_persian_only, validate_email_domain, validate_iranian_mobile_number
 from django.conf import settings
 
+from django.contrib.auth.models import Group as auth_group
+
 class User(AbstractUser):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username_validator = UnicodeUsernameValidator()
@@ -172,8 +174,8 @@ class Group(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "گروه"
-        verbose_name_plural = "گروه های تعریف شده در دانشکده"
+        verbose_name = "گروه های آموزشی"
+        verbose_name_plural = "گروه های آموزشی تعریف شده در دانشکده"
 
 class GroupManager(models.Model):
     professor = models.ForeignKey(
@@ -266,3 +268,8 @@ class Teacher(models.Model):
     class Meta:
         verbose_name = "استاد"
         verbose_name_plural = "لیست اساتید"
+
+
+# change name of django defualt app names
+auth_group._meta.verbose_name = "گروه کاربران"  # Singular name
+auth_group._meta.verbose_name_plural = "گروه های کاربران"  # Plural name

@@ -132,8 +132,8 @@ class Session(models.Model):
     )
 
     class Meta:
-        verbose_name = 'نشست'
-        verbose_name_plural = 'نشست ها'
+        verbose_name = 'جلسه دفاع پایان نامه / رساله'
+        verbose_name_plural = 'جلسات دفاع پایان نامه / رساله'
 
     def save(self, *args, **kwargs):
         # Automatically set is_active based on presence of any judge
