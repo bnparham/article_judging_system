@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from jalali_date import datetime2jalali
-from .models import User, Group, GroupManager, Student, Teacher
+from .models import User, EducationalGroup, Student, Teacher
 from django.utils.translation import gettext_lazy as _
 
 class MonthFilter(admin.SimpleListFilter):
@@ -166,7 +166,7 @@ class UserAdmin(admin.ModelAdmin):
 
 
 
-@admin.register(Group)
+@admin.register(EducationalGroup)
 class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'field_of_study', 'role',
                     'get_created_at_jalali', 'get_updated_at_jalali')
@@ -198,59 +198,6 @@ class GroupAdmin(admin.ModelAdmin):
             # Return an empty list of readonly fields in the Add view
             return []
         return self.readonly_fields
-
-@admin.register(GroupManager)
-class GroupManagerAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'user_national_code', 'group',
-                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_groupManger', 'edit_user')
-    search_fields = ('user_full_name', 'group__name', 'user__email')
-    list_filter = ('group', 'created_at', 'updated_at')
-
-    # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
-
-    def user_full_name(self, obj):
-        return f"{obj.professor.user.name}"
-    user_full_name.short_description = "نام و نام خانوادگی"
-
-    def user_national_code(self, obj):
-        return f"{obj.professor.national_code}"
-    user_national_code.short_description = "کد ملی"
-
-    def edit_groupManger(self, obj):
-        return format_html('<a href="{}">ویرایش مدیر گروه</a>', f"/admin/account/groupmanager/{obj.id}/change/")
-    edit_groupManger.short_description = "ورود به پنل ویرایش مدیر گروه"
-
-    def edit_user(self, obj):
-        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.professor.user.uuid}/change/")
-    edit_user.short_description = "ورود به پنل ویرایش کاربر"
-
-    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
-    def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
-    def get_updated_at_jalali(self, obj):
-        if obj.updated_at:
-            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    def get_list_display_links(self, request, list_display):
-        # Remove links from all columns
-        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
@@ -301,30 +248,26 @@ class StudentAdmin(admin.ModelAdmin):
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     list_display = ('user_full_name', 'national_code',
-                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher', 'edit_user')
-    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'national_code')
+                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
+    search_fields = ('first_name', 'last_name', 'email', 'national_code')
     list_filter = ('created_at', 'updated_at')
-    ordering = ('user__first_name',)
+    ordering = ('first_name', 'last_name')
 
     # Read-only fields in the form view
     readonly_fields = ['get_created_at_jalali',
                        'get_updated_at_jalali']
 
     def user_full_name(self, obj):
-        return f"{obj.user.name}"
+        return f"{obj.first_name} {obj.last_name}"
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_teacher(self, obj):
         return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/account/teacher/{obj.id}/change/")
     edit_teacher.short_description = "ورود به پنل ویرایش استاد"
 
-    def edit_user(self, obj):
-        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.user.uuid}/change/")
-    edit_user.short_description = "ورود به پنل ویرایش کاربر"
-
     def get_list_display_links(self, request, list_display):
         # Remove links from all columns
-        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
+        return ('edit_teacher')  # Keep the link only on `edit_teacher`
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
