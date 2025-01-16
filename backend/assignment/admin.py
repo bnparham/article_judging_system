@@ -207,6 +207,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Fields to be displayed in the list view
     list_display = ('student', 'schedule', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
+                    'class_number',
                     'session_status',
                     'get_updated_at_jalali')
 
@@ -253,32 +254,32 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         })
     )
 
-    class Media:
-        js = ('js/admin_assignment_session/filter_supervisors.js',
-              'js/admin_assignment_session/filter_graduate_monitor.js',
-              'js/admin_assignment_session/filter_judges.js',)
+    # class Media:
+    #     js = ('js/admin_assignment_session/filter_supervisors.js',
+    #           'js/admin_assignment_session/filter_graduate_monitor.js',
+    #           'js/admin_assignment_session/filter_judges.js',)
 
 
-    def get_form(self, request, obj=None, **kwargs):
-        """
-        Override get_form to dynamically filter the supervisor fields based on the selected schedule.
-        """
-        form = super().get_form(request, obj, **kwargs)
-
-        if obj and obj.pk is not None:
-            current_session_schedule = obj.schedule  # Current session's schedule
-            current_session_id = obj.pk  # Current session ID
-
-            self.filter_supervisor_fields_queryset(request, obj, current_session_schedule,
-                                                   current_session_id, form, **kwargs)
-
-            self.filter_graduate_monitor_fields_queryset(request, obj, current_session_schedule,
-                                                   current_session_id, form, **kwargs)
-
-            self.filter_judges_fields_queryset(request, obj, current_session_schedule,
-                                                   current_session_id, form, **kwargs)
-
-        return form
+    # def get_form(self, request, obj=None, **kwargs):
+    #     """
+    #     Override get_form to dynamically filter the supervisor fields based on the selected schedule.
+    #     """
+    #     form = super().get_form(request, obj, **kwargs)
+    #
+    #     if obj and obj.pk is not None:
+    #         current_session_schedule = obj.schedule  # Current session's schedule
+    #         current_session_id = obj.pk  # Current session ID
+    #
+    #         self.filter_supervisor_fields_queryset(request, obj, current_session_schedule,
+    #                                                current_session_id, form, **kwargs)
+    #
+    #         self.filter_graduate_monitor_fields_queryset(request, obj, current_session_schedule,
+    #                                                current_session_id, form, **kwargs)
+    #
+    #         self.filter_judges_fields_queryset(request, obj, current_session_schedule,
+    #                                                current_session_id, form, **kwargs)
+    #
+    #     return form
 
     def get_fieldsets(self, request, obj=None):
         # If `obj` is None, it's the Add view
