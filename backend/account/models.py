@@ -184,41 +184,108 @@ class Student(models.Model):
         'Ph.D.': 'دکتری',
         'Master': 'ارشد',
     }
+    SERVICE_STATUS_CHOICES = [
+        ('Completed', 'پایان یافته'),
+        ('Exempt', 'معاف'),
+        ('Pending', 'در حال انجام'),
+    ]
+    PROGRAM_TYPE_CHOICES = [
+        ('Day', 'روزانه'),
+        ('Night', 'شبانه'),
+        ('Campus', 'پردیس'),
+    ]
+    GENDER_CHOICES = [
+        ('Male', 'مرد'),
+        ('Female', 'زن'),
+        ('Other', 'دیگر'),
+    ]
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='student_profile',
-        verbose_name='کاربر'
-
-    )
-    student_number = models.CharField(max_length=20, unique=True, verbose_name='شماره دانشجویی')
-    lessons_group = models.ForeignKey(
+    first_name = models.CharField(_("نام"), max_length=150, editable=False, blank=True)
+    last_name = models.CharField(_("نام خانوادگی"), max_length=150, editable=False, blank=True)
+    # TODO : add validator
+    email = models.EmailField(unique=True,
+                              verbose_name='ایمیل',
+                              null=True,
+                              blank=True,
+                              validators=[validate_email_domain],
+                              editable=False)
+    # TODO : add validator
+    phone_number = models.CharField(max_length=11,
+                                    verbose_name='شماره موبایل',
+                                    unique=True,
+                                    null=False,
+                                    blank=True,
+                                    validators=[validate_iranian_mobile_number],
+                                    editable=False
+                                    )
+    student_number = models.CharField(max_length=20, unique=True,
+                                      verbose_name='شماره دانشجویی',
+                                      editable=False)
+    educational_group = models.ForeignKey(
         EducationalGroup,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.PROTECT,
         verbose_name='گروه',
-        related_name='students_group'
+        related_name='students_group',
+        editable=False,
+        null=True,
     )
-    role = models.CharField(max_length=20, verbose_name='مقطع تحصیلی', choices=ROLES_DICT)
-    status = models.CharField(max_length=20, verbose_name='وضعیت', choices=[
-        ('Current', 'ترم جاری'),
-        ('Defended', 'دفاع شده'),
-    ])
+    role = models.CharField(max_length=20,
+                            verbose_name='مقطع تحصیلی',
+                            choices=ROLES_DICT,
+                            editable=False)
+    status = models.CharField(max_length=20,
+                              verbose_name='وضعیت',
+                              choices=[
+                                    ('Current', 'دانشجو'),
+                                    ('Defended', 'دانش آموخته'),
+                                ],
+                              editable=True)
+    admission_year = models.PositiveIntegerField(
+        verbose_name="سال ورود",
+        default=0,
+        editable=False
+    )
+    gender = models.CharField(
+        max_length=10,
+        verbose_name='جنسیت',
+        choices=GENDER_CHOICES,
+        null=True,
+        blank=True,
+        editable=False
+    )
+    military_status = models.CharField(
+        max_length=20,
+        verbose_name='وضعیت سربازی',
+        choices=SERVICE_STATUS_CHOICES,
+        null=True,
+        blank=True,
+        editable=True,
+    )
+    program_type = models.CharField(
+        max_length=10,
+        verbose_name='دوره',
+        choices=PROGRAM_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        editable=False
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return f"{self.student_number} - {self.user.name} ({self.ROLES_DICT[self.role]})"
+        if self.gender == "Male":
+            name = f'{self.name} آقای '
+        elif self.gender == "Female":
+            name = f'{self.name} خانم '
+        return f"| مقطع تحصیلی {self.ROLES_DICT[self.role]}{self.student_number} با شماره دانشجویی {name}"
+
+    @property
+    def name(self):
+        return f'{self.first_name} {self.last_name}'
 
     class Meta:
         verbose_name = "دانشجو"
         verbose_name_plural = "لیست دانشجویان"
-
-    def clean(self):
-        if hasattr(self.user, 'teacher_profile'):
-            raise ValidationError(
-                'این کاربر به عنوان استاد تعیین شده است و نمی‌توانید او را به عنوان یک دانشجو ثبت کنید.')
 
 
 class Teacher(models.Model):
@@ -240,6 +307,11 @@ class Teacher(models.Model):
                                     )
 
     national_code = models.CharField(max_length=10, unique=True, verbose_name='کدملی')
+    faculty_id = models.CharField(
+                                 max_length=20,
+                                 unique=True,
+                                 verbose_name='کد استاد',
+                                 )
     degree = models.CharField(max_length=20,
                               verbose_name='مدرک تحصیلی',
                               choices=[
@@ -249,19 +321,18 @@ class Teacher(models.Model):
                               ])
     educational_groups = models.ManyToManyField(
         'EducationalGroup',
-        related_name="teachers",
-        verbose_name="گروه‌های آموزشی"
+        related_name="teachers_group",
+        verbose_name="گروه‌های آموزشی",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
-        return self.user.name
+        return self.name
 
-    def clean(self):
-        if hasattr(self.user, 'student_profile'):
-            raise ValidationError(
-                'این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید.')
+    @property
+    def name(self):
+        return f'{self.first_name} {self.last_name}'
 
     class Meta:
         verbose_name = "استاد"

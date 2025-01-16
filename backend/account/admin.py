@@ -201,15 +201,38 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_number', 'user', 'role', 'status',
-                    'lessons_group', 'get_created_at_jalali', 'get_updated_at_jalali')
-    search_fields = ('student_number', 'user__email', 'user__first_name', 'user__last_name')
-    list_filter = ('role', 'status', 'lessons_group', 'created_at', 'updated_at')
+    list_display = ('user_full_name', 'email', 'phone_number', 'student_number', 'role',
+                    'educational_group', 'admission_year', 'gender',
+                    'edit_student')
+    search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
+    list_filter = ('role', 'status', 'educational_group', 'military_status', 'program_type', 'gender')
     ordering = ('student_number',)
 
     # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
+    readonly_fields = (
+        'first_name', 'last_name', 'email', 'phone_number',
+        'student_number', 'educational_group', 'role',
+        'admission_year', 'gender', 'military_status', 'program_type',
+        'get_created_at_jalali',
+        'get_updated_at_jalali'
+    )
+
+    def has_add_permission(self, request, obj=None):
+        return False  # Always return False to disable adding new objects
+
+    # Prevent deleting objects in the admin panel
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+    def user_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    user_full_name.short_description = "نام و نام خانوادگی"
+
+    def edit_student(self, obj):
+        return format_html('<a href="{}">ویرایش دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
+    edit_student.short_description = "اطلاعات کامل دانشجو"
+
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
@@ -232,18 +255,9 @@ class StudentAdmin(admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
-    def save_model(self, request, obj, form, change):
-        # Check if the user is assigned as a teacher
-        if hasattr(obj.user, 'teacher_profile'):
-            self.message_user(
-                request,
-                _("این کاربر به عنوان استاد تعیین شده است و نمی‌توانید او را به عنوان یک دانشجو ثبت کنید."),
-                level='error'
-            )
-            return
-        super().save_model(request, obj, form, change)
-
-
+    def get_list_display_links(self, request, list_display):
+        # Remove links from all columns
+        return ('edit_student')  # Keep the link only on `edit_teacher`
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
@@ -290,14 +304,3 @@ class TeacherAdmin(admin.ModelAdmin):
             return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
-
-    def save_model(self, request, obj, form, change):
-        # Check if the user is assigned as a teacher
-        if hasattr(obj.user, 'student_profile'):
-            self.message_user(
-                request,
-                _("این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید."),
-                level='error'
-            )
-            return
-        super().save_model(request, obj, form, change)
