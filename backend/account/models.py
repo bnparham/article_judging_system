@@ -315,7 +315,6 @@ class Teacher(models.Model):
     degree = models.CharField(max_length=20,
                               verbose_name='مدرک تحصیلی',
                               choices=[
-                                  ('BACHELOR', 'کارشناسی'),  # Bachelor's Degree
                                   ('MASTER', 'کارشناسی ارشد'),  # Master's Degree
                                   ('PHD', 'دکتری')  # Doctorate (Ph.D.)
                               ])
