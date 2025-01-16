@@ -63,10 +63,10 @@ class UserAdmin(admin.ModelAdmin):
             'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
         (_('Permisions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser' ,'verify_account')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
         }),
         (_('Contact'), {
-            'fields': ('phone_number', 'address')
+            'fields': ('phone_number',)
         }),
         (_('Details'), {
             'fields': ('failed_login_attempts',
@@ -103,13 +103,15 @@ class UserAdmin(admin.ModelAdmin):
             # Exclude the "سایر اطلاعات" fieldset
             return (
                 ('Info', {
-                    'fields': ('username', 'email', 'first_name', 'last_name',)
+                    'fields': ('first_name', 'last_name', 'username', 'phone_number', 'email')
                 }),
                 (_('Permisions'), {
                     'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
                 }),
-                (_('Contact'), {
-                    'fields': ('phone_number', 'address')
+                (_('Groups and Permissions'), {
+                    'fields': ('groups', 'user_permissions'),
+                    'classes': ('collapse',),  # Optional: Adds a collapsible section in the admin
+                    'description': _('Manage the groups and permissions for this user.'),
                 }),
             )
         # Show all fieldsets (default) in the Change view
