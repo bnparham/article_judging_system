@@ -178,7 +178,7 @@ class Session(models.Model):
         if self.start_time >= self.end_time:
             raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
 
-        # Check for time conflicts in the same term (date) and schedule
+        # Check for time conflicts in the same term (date) and schedule and class_number
         overlapping_sessions = Session.objects.filter(
             date=self.date,  # Same term/date
             schedule=self.schedule,  # Same semester
@@ -188,15 +188,17 @@ class Session(models.Model):
         # Check if the start and end times of the current session overlap with any existing session
         for session in overlapping_sessions:
             # Time overlap condition:
-            # - The current session starts has conflict with the other session life span
-            # - The current session ends has conflict with the other session life span
-            if self.start_time >= session.start_time and self.start_time < session.end_time:
+            # 1. The current session starts during another session.
+            # 2. The current session ends during another session.
+            # 3. The current session completely spans another session.
+            if (
+                    (self.start_time >= session.start_time and self.start_time < session.end_time) or
+                    (self.end_time > session.start_time and self.end_time <= session.end_time) or
+                    (self.start_time <= session.start_time and self.end_time >= session.end_time)
+            ):
                 raise ValidationError(
-                    f" کلاس {self.class_number} تداخل در زمان شروع دارد با نشست دیگری ({session.start_time} - {session.end_time}) در {self.get_date_jalali}.")
-
-            if self.end_time < session.end_time and self.end_time > self.start_time:
-                raise ValidationError(
-                    f" کلاس {self.class_number} تداخل در زمان پایان دارد با نشست دیگری ({session.start_time} - {session.end_time}) در {self.get_date_jalali}.")
+                    f"کلاس {self.class_number} تداخل زمانی دارد با نشست دیگری ({session.start_time} - {session.end_time}) در {self.get_date_jalali}."
+                )
 
 
         # Collect all the roles that should not be duplicated
@@ -217,24 +219,29 @@ class Session(models.Model):
 
         # Remove None values (empty fields)
         professors = [prof for prof in roles if prof is not None]
+        overlapping_sessions_2 = Session.objects.filter(
+            date=self.date,  # Same term/date
+            schedule=self.schedule,  # Same semester
+        ).exclude(id=self.id)  # Exclude the current session if it's an update
 
         # Loop through all professors and check for conflicts
         for professor in professors:
 
             # Fetch the conflicting sessions
-            conflicting_sessions = Session.objects.filter(
-                Q(supervisor1=professor) | Q(supervisor2=professor) |
-                Q(supervisor3=professor) | Q(supervisor4=professor) |
-                Q(judge1=professor) | Q(judge2=professor) |
-                Q(judge3=professor) | Q(graduate_monitor=professor),
-                date=self.date,
-                schedule=self.schedule,  # Same schedule
-            ).filter(
-                Q(start_time__lt=self.end_time, start_time__gte=self.start_time) |
-                Q(end_time__lt=self.end_time, end_time__gt=self.start_time)  # Overlapping time
-            ).exclude(id=self.id)
-
-            print(conflicting_sessions)
+            conflicting_sessions = overlapping_sessions_2.filter(
+                (
+                    Q(supervisor1=professor) | Q(supervisor2=professor) |
+                    Q(supervisor3=professor) | Q(supervisor4=professor) |
+                    Q(judge1=professor) | Q(judge2=professor) |
+                    Q(judge3=professor) | Q(graduate_monitor=professor)
+                )
+                &
+                (
+                    # Q(start_time__lt=self.end_time, start_time__gte=self.start_time) |
+                    # Q(end_time__lt=self.end_time, end_time__gt=self.start_time)  # Overlapping time
+                    Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+                )
+            )
 
             # Check if conflicts exist
             if conflicting_sessions.exists():
@@ -244,21 +251,6 @@ class Session(models.Model):
                     f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری ({session.class_number}) در تاریخ {self.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
                 )
 
-
-            # if Session.objects.filter(
-            #     Q(supervisor1=professor) | Q(supervisor2=professor) |
-            #     Q(supervisor3=professor) | Q(supervisor4=professor) |
-            #     Q(judge1=professor) | Q(judge2=professor) |
-            #     Q(judge3=professor) | Q(graduate_monitor=professor),
-            #     date=self.date,
-            #     schedule=self.schedule,  # Same schedule
-            # ).exclude(class_number=self.class_number).filter(
-            #     Q(start_time__lt=self.end_time, start_time__gte=self.start_time) |
-            #     Q(end_time__lt=self.end_time, end_time__gte=self.start_time) # Overlapping time
-            # ).exists():
-            #     raise ValidationError(
-            #         f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری در تاریخ {self.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
-            #     )
 
     @property
     def get_date_jalali(self):
