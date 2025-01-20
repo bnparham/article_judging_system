@@ -184,19 +184,14 @@ class Session(models.Model):
         ]
         self.validate_professors(roles)
 
-        # Validate judges
-        judges = self.get_judges()  # Method to get judges
-        self.validate_judges(judges)
-
     def validate_professors(self, roles):
         # Remove any None values (empty fields)
-        roles = [role for role in roles if role is not None]
+        professors = [prof for prof in roles if prof is not None]
 
         # Check for duplicates
-        if len(roles) != len(set(roles)):
-            raise ValidationError("اساتید تکراری نمی‌توانند در یک نشست تکراری باشند.")
+        if len(professors) != len(set(professors)):
+            raise ValidationError("اساتید نمی‌توانند در یک نشست تکراری باشند.")
 
-        professors = [prof for prof in roles if prof is not None]
         overlapping_sessions_2 = Session.objects.filter(
             date=self.date,  # Same term/date
             schedule=self.schedule,  # Same semester
@@ -221,33 +216,37 @@ class Session(models.Model):
                     f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری با شناسه ({session.id}) در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
                 )
 
-    def validate_judges(self, judges):
+    def validate_professors_as_judges(self, roles):
+
         # Remove any None values (empty fields)
-        judges = [judge for judge in judges if judge is not None]
+        professors = [prof for prof in roles if prof is not None]
 
         # Check for duplicates
-        if len(judges) != len(set(judges)):
-            raise ValidationError("داوران تکراری نمی‌توانند در یک نشست باشند.")
+        if len(professors) != len(set(professors)):
+            raise ValidationError("اساتید تکراری نمی‌توانند در یک نشست تکراری باشند.")
 
-        # Find overlapping sessions based on date, schedule, and judge assignments
         overlapping_sessions_2 = Session.objects.filter(
-            date=self.date,  # Same date
-            schedule=self.schedule,  # Same schedule
+            date=self.date,  # Same term/date
+            schedule=self.schedule,  # Same semester
         ).exclude(id=self.id)  # Exclude the current session if it's an update
 
-        # Loop through all judges and check for conflicts
-        for judge in judges:
-            # Check for any conflicting sessions where the judge is assigned
+        # Loop through all professors and check for conflicts
+        for professor in professors:
             conflicting_sessions = overlapping_sessions_2.filter(
-                Q(judges__judge=judge)  # Assuming 'judges' is the related_name for JudgeAssignment
-            ).filter(
-                Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+                (
+                        Q(supervisor1=professor) | Q(supervisor2=professor) |
+                        Q(supervisor3=professor) | Q(supervisor4=professor) |
+                        Q(graduate_monitor=professor)
+                )
+                & (
+                    Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+                )
             )
 
             if conflicting_sessions.exists():
                 session = conflicting_sessions.first()
                 raise ValidationError(
-                    f"تداخل زمانی رخ داده است. داور {judge} در کلاس دیگری با شناسه ({session.id}) در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+                    f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری با شناسه ({session.id}) در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
                 )
 
     def get_judges(self):
