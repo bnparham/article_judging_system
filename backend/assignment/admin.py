@@ -205,7 +205,7 @@ class SessionAdminForm(forms.ModelForm):
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
     # Fields to be displayed in the list view
-    list_display = ('student', 'schedule', 'get_date_jalali',
+    list_display = ('get_id', 'student', 'schedule', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
                     'class_number',
                     'session_status',
@@ -219,7 +219,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                      'supervisor3__first_name',
                      'supervisor3__last_name',
                      'supervisor4__first_name',
-                     'supervisor4__last_name')
+                     'supervisor4__last_name',
+                     'id')
 
     # Filters to narrow down results in the list view
     list_filter = ('session_status', 'is_active', MonthFilter, MonthFilter_created_at,
@@ -228,29 +229,41 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                    Consultant_ProfessorCountFilter,
                    JudgesCountFilter)
 
+    autocomplete_fields = [
+                     'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
+    ]
+
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali', 'is_active')
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
-        (_('B'), {
-            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
+        (_('اطلاعات جلسه دفاعیه'), {
+            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+            'description': _("""
+            ✅
+نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
+در غیر این صورت با پیغام خطا مواجه خواهید شد               
+            """)
         }),
-        (_('C'), {
+        (_('اطلاعات برگزار کنندگان'), {
             'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
-                       'supervisor4', 'graduate_monitor',
-                       'judge1', 'judge2', 'judge3',
-                       'session_status',
-                       'is_active',)
+                       'supervisor4', 'graduate_monitor',)
         }),
-        (_('D'), {
+        (_('بخش هیئت داوران'), {
+            'fields': (
+                       'judge1', 'judge2', 'judge3',
+                       )
+        }),
+        (_('تاریخ ایجاد / ویرایش این جلسه'), {
             'fields': ('get_created_at_jalali',
                        'get_updated_at_jalali',
                        )
         }),
-        (_('E'), {
+        (_('اطلاعات اضافی'), {
             'fields': ('description',
-                       )
+                       ),
+            'classes': ('collapse',),
         })
     )
 
@@ -286,20 +299,25 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
             return (
-                (_('B'), {
+                (_('اطلاعات جلسه دفاعیه'), {
                     'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
                 }),
-                (_('C'), {
+                (_('اطلاعات برگزار کنندگان'), {
                     'fields': (
                     'student', 'supervisor1', 'supervisor2', 'supervisor3',
                     'supervisor4', 'graduate_monitor',
-                    'judge1', 'judge2', 'judge3',
-                    'session_status',
                     )
                 }),
-                (_('D'), {
+                (_('بخش هیئت داوران'), {
+                    'fields': (
+                        'judge1', 'judge2', 'judge3',
+                    )
+                }),
+                (_('اطلاعات اضافی'), {
                     'fields': ('description',
-                               )
+                               ),
+                    'classes': ('collapse',),
+
                 })
             )
         # Show all fieldsets (default) in the Change view
@@ -312,6 +330,10 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             # Return an empty list of readonly fields in the Add view
             return []
         return self.readonly_fields
+
+    @admin.display(description='شناسه', ordering='id')
+    def get_id(self, obj):
+        return obj.id
 
     @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
     def get_created_at_jalali(self, obj):

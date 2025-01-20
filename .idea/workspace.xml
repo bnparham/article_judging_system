@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6c93ce4c-0a2e-4e71-a0a4-25f51f3f76f4" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/913e0632-1c27-440a-a144-a425773667b6.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/913e0632-1c27-440a-a144-a425773667b6/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/a64910c2-505c-4efc-b07b-76ef2076f36e.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/assignment/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/assignment/admin.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/assignment/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/assignment/models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -76,7 +72,8 @@
       <workItem from="1737017164135" duration="7442000" />
       <workItem from="1737034086144" duration="531000" />
       <workItem from="1737034629430" duration="19915000" />
-      <workItem from="1737099173150" duration="2869000" />
+      <workItem from="1737099173150" duration="4222000" />
+      <workItem from="1737381297949" duration="1861000" />
     </task>
     <servers />
   </component>
