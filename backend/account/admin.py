@@ -265,7 +265,7 @@ class StudentAdmin(admin.ModelAdmin):
 class TeacherAdmin(admin.ModelAdmin):
     list_display = ('user_full_name', 'national_code',
                     'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
-    search_fields = ('first_name', 'last_name', 'email', 'national_code')
+    search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')
     list_filter = ('created_at', 'updated_at')
     ordering = ('first_name', 'last_name')
 

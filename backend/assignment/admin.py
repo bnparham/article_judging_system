@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from jalali_date import datetime2jalali, date2jalali
 from jalali_date.admin import ModelAdminJalaliMixin
 
-from .models import Session
+from .models import Session, JudgeAssignment
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 from django import forms
@@ -192,6 +192,14 @@ class JudgesCountFilter(admin.SimpleListFilter):
             )
         return queryset
 
+
+class JudgeAssignmentInline(admin.TabularInline):
+    model = JudgeAssignment
+    extra = 1  # Number of empty rows to show for adding new judges
+    verbose_name = "داور"
+    verbose_name_plural = "بخش هیئت داوران"
+    autocomplete_fields = ['judge']
+
 class SessionAdminForm(forms.ModelForm):
     class Meta:
         model = Session
@@ -204,6 +212,7 @@ class SessionAdminForm(forms.ModelForm):
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
+    inlines = [JudgeAssignmentInline]
     # Fields to be displayed in the list view
     list_display = ('get_id', 'student', 'schedule', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
@@ -227,7 +236,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                    MonthFilter_updated_at,
                    SupervisorCountFilter,
                    Consultant_ProfessorCountFilter,
-                   JudgesCountFilter)
+                   )
 
     autocomplete_fields = [
                      'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
@@ -249,11 +258,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         (_('اطلاعات برگزار کنندگان'), {
             'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
                        'supervisor4', 'graduate_monitor',)
-        }),
-        (_('بخش هیئت داوران'), {
-            'fields': (
-                       'judge1', 'judge2', 'judge3',
-                       )
         }),
         (_('تاریخ ایجاد / ویرایش این جلسه'), {
             'fields': ('get_created_at_jalali',
@@ -308,11 +312,11 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                     'supervisor4', 'graduate_monitor',
                     )
                 }),
-                (_('بخش هیئت داوران'), {
-                    'fields': (
-                        'judge1', 'judge2', 'judge3',
-                    )
-                }),
+                # (_('بخش هیئت داوران'), {
+                #     'fields': (
+                #         'judge1', 'judge2', 'judge3',
+                #     )
+                # }),
                 (_('اطلاعات اضافی'), {
                     'fields': ('description',
                                ),
@@ -415,10 +419,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             return "ثبت نشده است"
 
 
-    def save_model(self, request, obj, form, change):
-        # Save the object if the schedule exists
-        super().save_model(request, obj, form, change)
-
     def filter_supervisor_fields_queryset(self, request, obj,
                                           current_session_schedule,
                                           current_session_id, form,
@@ -502,6 +502,16 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
             # Assign the combined queryset to the field
             field.queryset = combined_queryset.distinct()
+
+    def save_model(self, request, obj, form, change):
+        try:
+            obj.clean()  # Call the custom clean method before saving
+
+        except ValidationError as e:
+            # Catch the validation error and display it
+            self.message_user(request, str(e), level='error')
+            return  # Don't save the model if validation fails
+        super().save_model(request, obj, form, change)  # Save if no error
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
