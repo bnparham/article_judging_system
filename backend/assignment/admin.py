@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
+from django.shortcuts import redirect
 
 from jalali_date import datetime2jalali, date2jalali
 from jalali_date.admin import ModelAdminJalaliMixin
@@ -11,6 +12,7 @@ from django.db.models import Q
 from django import forms
 from jalali_date.widgets import AdminJalaliDateWidget
 from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
+
 
 class MonthFilter(admin.SimpleListFilter):
     title = _('بر اساس زمانبدی نشست')
@@ -34,7 +36,7 @@ class MonthFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            if(hasattr(queryset.model, 'schedule')):
+            if (hasattr(queryset.model, 'schedule')):
                 return queryset.filter(schedule__date__month=self.value())
 
 
@@ -60,8 +62,9 @@ class MonthFilter_created_at(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            if(hasattr(queryset.model, 'created_at')):
+            if (hasattr(queryset.model, 'created_at')):
                 return queryset.filter(created_at__month=self.value())
+
 
 class MonthFilter_updated_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ویرایش شده')
@@ -85,8 +88,9 @@ class MonthFilter_updated_at(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            if(hasattr(queryset.model, 'updated_at')):
+            if (hasattr(queryset.model, 'updated_at')):
                 return queryset.filter(updated_at__month=self.value())
+
 
 class SupervisorCountFilter(admin.SimpleListFilter):
     title = _('تعداد استاد راهنما')
@@ -111,6 +115,7 @@ class SupervisorCountFilter(admin.SimpleListFilter):
             )
         return queryset
 
+
 class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
     title = _('تعداد استاد مشاور')
     parameter_name = 'Consultant_Professor_count'
@@ -131,9 +136,9 @@ class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
         elif self.value() == '1':
             return queryset.filter(
                 Q(supervisor3__isnull=True,
-                supervisor4__isnull=False,) |
+                  supervisor4__isnull=False, ) |
                 Q(supervisor3__isnull=False,
-                supervisor4__isnull=True,)
+                  supervisor4__isnull=True, )
             )
         elif self.value() == '2':
             return queryset.filter(
@@ -141,6 +146,7 @@ class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
                 supervisor4__isnull=False,
             )
         return queryset
+
 
 class JudgesCountFilter(admin.SimpleListFilter):
     title = _('تعداد داوران')
@@ -165,37 +171,36 @@ class JudgesCountFilter(admin.SimpleListFilter):
             return queryset.filter(
                 Q(judge1__isnull=False,
                   judge2__isnull=True,
-                  judge3__isnull=True,) |
+                  judge3__isnull=True, ) |
                 Q(judge1__isnull=True,
                   judge2__isnull=False,
-                  judge3__isnull=True,) |
+                  judge3__isnull=True, ) |
                 Q(judge1__isnull=True,
                   judge2__isnull=True,
-                  judge3__isnull=False,)
+                  judge3__isnull=False, )
             )
         elif self.value() == '2':
             return queryset.filter(
                 Q(judge1__isnull=False,
                   judge2__isnull=False,
-                  judge3__isnull=True,) |
+                  judge3__isnull=True, ) |
                 Q(judge1__isnull=False,
                   judge2__isnull=True,
-                  judge3__isnull=False,) |
+                  judge3__isnull=False, ) |
                 Q(judge1__isnull=True,
                   judge2__isnull=False,
-                  judge3__isnull=False,)
+                  judge3__isnull=False, )
             )
         elif self.value() == '3':
             return queryset.filter(
                 Q(judge1__isnull=False,
                   judge2__isnull=False,
-                  judge3__isnull=False,)
+                  judge3__isnull=False, )
             )
         return queryset
 
 
 class JudgeAssignmentForm(forms.ModelForm):
-
     class Meta:
         model = JudgeAssignment
         fields = ['judge']
@@ -208,7 +213,7 @@ class JudgeAssignmentForm(forms.ModelForm):
 
         self.validate_judges(judge_field)
 
-        self.validate_judges_as_professors(judge_field)
+        self.validate_judges_as_professors_db(judge_field)
 
         return cleaned_data
 
@@ -235,7 +240,7 @@ class JudgeAssignmentForm(forms.ModelForm):
                 f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
             )
 
-    def validate_judges_as_professors(self, judge):
+    def validate_judges_as_professors_db(self, judge):
 
         session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
 
@@ -267,15 +272,29 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         super().clean()
 
         # Judges will be accessible here if you need to validate only within the inline formset
-        self.judges = [
+        judges = [
             form.cleaned_data.get('judge')
             for form in self.forms
             if not form.cleaned_data.get('DELETE', False)  # Exclude deleted judges
         ]
-        if len(self.judges) != len(set(self.judges)):
+        if len(judges) != len(set(judges)):
             raise ValidationError(
                 f"داوران در یک نشست نمیتوانند تکراری باشند"
             )
+
+
+        # Validate against supervisors and graduate_monitor in the parent form
+        parent_session = self.instance  # Parent `Session` instance
+        for judge in judges:
+            if judge in [
+                parent_session.supervisor1,
+                parent_session.supervisor2,
+                parent_session.supervisor3,
+                parent_session.supervisor4,
+                parent_session.graduate_monitor,
+            ]:
+                raise ValidationError(f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
+
 
 class JudgeAssignmentInline(admin.TabularInline):
     model = JudgeAssignment
@@ -290,6 +309,7 @@ class JudgeAssignmentInline(admin.TabularInline):
         qs = super().get_queryset(request)
         return qs.select_related('judge', 'session')  # Optimize related field
 
+
 class SessionAdminForm(forms.ModelForm):
     class Meta:
         model = Session
@@ -299,6 +319,10 @@ class SessionAdminForm(forms.ModelForm):
             'start_time': TimePickerInput,  # Time picker
             'end_time': TimePickerInput,  # Time picker
         }
+
+    def clean(self):
+        ...
+
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
@@ -329,7 +353,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                    )
 
     autocomplete_fields = [
-                     'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
+        'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
     ]
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
@@ -366,88 +390,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     #           'js/admin_assignment_session/filter_graduate_monitor.js',
     #           'js/admin_assignment_session/filter_judges.js',)
 
-
-    # def get_form(self, request, obj=None, **kwargs):
-    #     """
-    #     Override get_form to dynamically filter the supervisor fields based on the selected schedule.
-    #     """
-    #     form = super().get_form(request, obj, **kwargs)
-    #
-    #     if obj and obj.pk is not None:
-    #         current_session_schedule = obj.schedule  # Current session's schedule
-    #         current_session_id = obj.pk  # Current session ID
-    #
-    #         self.filter_supervisor_fields_queryset(request, obj, current_session_schedule,
-    #                                                current_session_id, form, **kwargs)
-    #
-    #         self.filter_graduate_monitor_fields_queryset(request, obj, current_session_schedule,
-    #                                                current_session_id, form, **kwargs)
-    #
-    #         self.filter_judges_fields_queryset(request, obj, current_session_schedule,
-    #                                                current_session_id, form, **kwargs)
-    #
-    #     return form
-
-    def save_related(self, request, form, formsets, change):
-
-        self.find_JudgeAssignmentForm = None
-        self.find_judges_inline_form = []
-        super().save_related(request, form, formsets, change)
-
-        # Access related `JudgeAssignment` objects
-        for formset in formsets:
-            if formset.model == JudgeAssignment:
-                self.find_JudgeAssignmentForm = formset
-                for inline_form in formset.forms:
-
-                    judge_assignment_instance = inline_form.instance
-
-                    # Ensure the instance is valid and saved before accessing its fields
-                    if judge_assignment_instance.pk:  # Check if the instance is saved
-                        # print(f"Judge Assignment: {judge_assignment_instance}")
-                        # print(f"Assigned Judge: {judge_assignment_instance.judge}")
-                        self.find_judges_inline_form.append(judge_assignment_instance.judge)
-                    else:
-                        # this is happen for empty fields !
-                        # print("Instance not saved yet or incomplete.")
-                        continue
-
-        # Validate find_judges_inline_form with Session Fields (supervisors, graduate_monitor) !
-
-        supervisor1 = form.cleaned_data.get('supervisor1')
-        supervisor2 = form.cleaned_data.get('supervisor2')
-        supervisor3 = form.cleaned_data.get('supervisor3')
-        supervisor4 = form.cleaned_data.get('supervisor4')
-        graduate_monitor = form.cleaned_data.get('graduate_monitor')
-
-        supervisors_and_monitors = {
-            supervisor1,
-            supervisor2,
-            supervisor3,
-            supervisor4,
-            graduate_monitor,
-        }
-        supervisors_and_monitors.discard(None)  # Remove None values
-
-        print(supervisors_and_monitors, self.find_judges_inline_form)
-
-        for person in supervisors_and_monitors:
-            if person in self.find_judges_inline_form:
-                e = f"شخص {person} نمی‌تواند هم به عنوان داور و هم به عنوان استاد مشاور یا ناظر تحصیلات تکمیلی باشد."
-
-                # Show the error message in the admin panel
-                self.message_user(request, str(e), level='error')
-                # Add the error to the form so it prevents saving
-                form.add_error(None, e)  # Add the error to the non-field errors
-                # Prevent the save from happening by returning early
-                self.find_JudgeAssignmentForm.save(commit=False)
-                return
-
-                # Prevent the save from happening by returning early
-
-
-
-
     def get_fieldsets(self, request, obj=None):
         # If `obj` is None, it's the Add view
         if obj is None:
@@ -458,8 +400,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 }),
                 (_('اطلاعات برگزار کنندگان'), {
                     'fields': (
-                    'student', 'supervisor1', 'supervisor2', 'supervisor3',
-                    'supervisor4', 'graduate_monitor',
+                        'student', 'supervisor1', 'supervisor2', 'supervisor3',
+                        'supervisor4', 'graduate_monitor',
                     )
                 }),
                 # (_('بخش هیئت داوران'), {
@@ -502,7 +444,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
-    @admin.display(description='تاریخ', ordering='date')
+    @admin.display(description='تاریخ برگزاری جلسه', ordering='date')
     def get_date_jalali(self, obj):
         if obj.date:
             return date2jalali(obj.date).strftime('%a, %d %b %Y')
@@ -567,102 +509,64 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
-
-    def filter_supervisor_fields_queryset(self, request, obj,
-                                          current_session_schedule,
-                                          current_session_id, form,
-                                          **kwargs):
-        supervisor_fields = ['supervisor1', 'supervisor2', 'supervisor3', 'supervisor4']
-        for field_name in supervisor_fields:
-            field = form.base_fields[field_name]
-            query_assigned_to_current = field.queryset.filter(
-                Q(supervisor1_assignments__schedule=current_session_schedule,
-                  supervisor1_assignments__id=current_session_id) |
-                Q(supervisor2_assignments__schedule=current_session_schedule,
-                  supervisor2_assignments__id=current_session_id) |
-                Q(supervisor3_assignments__schedule=current_session_schedule,
-                  supervisor3_assignments__id=current_session_id) |
-                Q(supervisor4_assignments__schedule=current_session_schedule,
-                  supervisor4_assignments__id=current_session_id)
-            )
-
-            # Query to exclude supervisors assigned to the same schedule in other sessions
-            query_not_in_other_sessions = field.queryset.filter(
-                ~Q(supervisor1_assignments__schedule=current_session_schedule) &
-                ~Q(supervisor2_assignments__schedule=current_session_schedule) &
-                ~Q(supervisor3_assignments__schedule=current_session_schedule) &
-                ~Q(supervisor4_assignments__schedule=current_session_schedule)
-            )
-
-            # Combine the two querysets and remove duplicates
-            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
-
-            # Assign the combined queryset to the field
-            field.queryset = combined_queryset.distinct()
-
-    def filter_graduate_monitor_fields_queryset(self, request, obj,
-                                          current_session_schedule,
-                                          current_session_id, form,
-                                          **kwargs):
-        graduate_monitor_fields = ['graduate_monitor']
-        for field_name in graduate_monitor_fields:
-            field = form.base_fields[field_name]
-            query_assigned_to_current = field.queryset.filter(
-                Q(graduate_monitor_assignments__schedule=current_session_schedule,
-                  graduate_monitor_assignments__id=current_session_id)
-            )
-
-            # Query to exclude supervisors assigned to the same schedule in other sessions
-            query_not_in_other_sessions = field.queryset.filter(
-                ~Q(graduate_monitor_assignments__schedule=current_session_schedule)
-            )
-
-            # Combine the two querysets and remove duplicates
-            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
-
-            # Assign the combined queryset to the field
-            field.queryset = combined_queryset.distinct()
-
-    def filter_judges_fields_queryset(self, request, obj,
-                                          current_session_schedule,
-                                          current_session_id, form,
-                                          **kwargs):
-        judges_fields = ['judge1', 'judge2', 'judge3']
-        for field_name in judges_fields:
-            field = form.base_fields[field_name]
-            query_assigned_to_current = field.queryset.filter(
-                Q(judge1_assignments__schedule=current_session_schedule,
-                  judge1_assignments__id=current_session_id) |
-                Q(judge2_assignments__schedule=current_session_schedule,
-                  judge2_assignments__id=current_session_id) |
-                Q(judge3_assignments__schedule=current_session_schedule,
-                  judge3_assignments__id=current_session_id)
-            )
-
-            # Query to exclude supervisors assigned to the same schedule in other sessions
-            query_not_in_other_sessions = field.queryset.filter(
-                ~Q(judge1_assignments__schedule=current_session_schedule) &
-                ~Q(judge2_assignments__schedule=current_session_schedule) &
-                ~Q(judge3_assignments__schedule=current_session_schedule)
-            )
-
-            # Combine the two querysets and remove duplicates
-            combined_queryset = query_assigned_to_current | query_not_in_other_sessions
-
-            # Assign the combined queryset to the field
-            field.queryset = combined_queryset.distinct()
-
-
-
     def save_model(self, request, obj, form, change):
         try:
             obj.clean()  # Call the custom clean method before saving
-
         except ValidationError as e:
             # Catch the validation error and display it
             self.message_user(request, str(e), level='error')
             return  # Don't save the model if validation fails
         super().save_model(request, obj, form, change)  # Save if no error
+
+    # def save_related(self, request, form, formsets, change):
+    #
+    #     self.find_JudgeAssignmentForm = None
+    #     self.find_judges_inline_form = []
+    #     super().save_related(request, form, formsets, change)
+    #
+    #     # Access related `JudgeAssignment` objects
+    #     for formset in formsets:
+    #         if formset.model == JudgeAssignment:
+    #             self.find_JudgeAssignmentForm = formset
+    #             self.find_JudgeAssignmentForm.save(commit=False)
+    #             for related_obj in formset.forms:
+    #
+    #                 judge_assignment_instance = related_obj.instance
+    #
+    #                 # Ensure the instance is valid and saved before accessing its fields
+    #                 if judge_assignment_instance.pk:  # Check if the instance is saved
+    #                     # print(f"Judge Assignment: {judge_assignment_instance}")
+    #                     # print(f"Assigned Judge: {judge_assignment_instance.judge}")
+    #                     self.find_judges_inline_form.append(judge_assignment_instance.judge)
+    #                 else:
+    #                     # this is happen for empty fields !
+    #                     # print("Instance not saved yet or incomplete.")
+    #                     continue
+    #
+    #     # Validate find_judges_inline_form with Session Fields (supervisors, graduate_monitor) !
+    #
+    #     supervisor1 = form.cleaned_data.get('supervisor1')
+    #     supervisor2 = form.cleaned_data.get('supervisor2')
+    #     supervisor3 = form.cleaned_data.get('supervisor3')
+    #     supervisor4 = form.cleaned_data.get('supervisor4')
+    #     graduate_monitor = form.cleaned_data.get('graduate_monitor')
+    #
+    #     supervisors_and_monitors = {
+    #         supervisor1,
+    #         supervisor2,
+    #         supervisor3,
+    #         supervisor4,
+    #         graduate_monitor,
+    #     }
+    #     supervisors_and_monitors.discard(None)  # Remove None values
+    #
+    #     for judge in self.find_judges_inline_form:
+    #         if judge in supervisors_and_monitors:
+    #             # Send the user back to the referring page with an error message
+    #             referer = request.META.get('HTTP_REFERER', '/admin/')  # Default to admin index if referer is missing
+    #             messages.error(request, f"An error occurred: ")
+    #             return redirect(referer)
+    #             # print(help(self.find_JudgeAssignmentForm))
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)

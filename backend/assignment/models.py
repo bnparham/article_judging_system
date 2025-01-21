@@ -107,15 +107,6 @@ class Session(models.Model):
         help_text="ناظر تحصیلات تکمیلی را انتخاب کنید (اجباری)"
     )
 
-    # judge1 = models.ForeignKey(
-    #     'account.Teacher',
-    #     on_delete=models.CASCADE,
-    #     related_name="judge1_assignments",
-    #     verbose_name="داور اول",
-    #     blank=True,
-    #     null=True,
-    #     help_text="داور اول را انتخاب کنید (انتخاب اختیاری)"
-    # )
     is_active = models.BooleanField(
         default=False,
         editable=False,
