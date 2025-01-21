@@ -266,17 +266,16 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
     def clean(self):
         super().clean()
 
-        # Collect all judges from the cleaned data
-        judges = []
-        for form in self.forms:
-            if not form.cleaned_data.get('DELETE', False):  # Skip deleted forms
-                judge = form.cleaned_data.get('judge')
-                if judge:
-                    if judge in judges:
-                        raise ValidationError(
-                            f"داور {judge} نمی‌تواند در یک نشست تکرار شود."
-                        )
-                    judges.append(judge)
+        # Judges will be accessible here if you need to validate only within the inline formset
+        self.judges = [
+            form.cleaned_data.get('judge')
+            for form in self.forms
+            if not form.cleaned_data.get('DELETE', False)  # Exclude deleted judges
+        ]
+        if len(self.judges) != len(set(self.judges)):
+            raise ValidationError(
+                f"داوران در یک نشست نمیتوانند تکراری باشند"
+            )
 
 class JudgeAssignmentInline(admin.TabularInline):
     model = JudgeAssignment
@@ -286,6 +285,10 @@ class JudgeAssignmentInline(admin.TabularInline):
     verbose_name = "داور"
     verbose_name_plural = "بخش هیئت داوران"
     autocomplete_fields = ['judge']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('judge', 'session')  # Optimize related field
 
 class SessionAdminForm(forms.ModelForm):
     class Meta:
@@ -385,6 +388,66 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     #
     #     return form
 
+    def save_related(self, request, form, formsets, change):
+
+        self.find_JudgeAssignmentForm = None
+        self.find_judges_inline_form = []
+        super().save_related(request, form, formsets, change)
+
+        # Access related `JudgeAssignment` objects
+        for formset in formsets:
+            if formset.model == JudgeAssignment:
+                self.find_JudgeAssignmentForm = formset
+                for inline_form in formset.forms:
+
+                    judge_assignment_instance = inline_form.instance
+
+                    # Ensure the instance is valid and saved before accessing its fields
+                    if judge_assignment_instance.pk:  # Check if the instance is saved
+                        # print(f"Judge Assignment: {judge_assignment_instance}")
+                        # print(f"Assigned Judge: {judge_assignment_instance.judge}")
+                        self.find_judges_inline_form.append(judge_assignment_instance.judge)
+                    else:
+                        # this is happen for empty fields !
+                        # print("Instance not saved yet or incomplete.")
+                        continue
+
+        # Validate find_judges_inline_form with Session Fields (supervisors, graduate_monitor) !
+
+        supervisor1 = form.cleaned_data.get('supervisor1')
+        supervisor2 = form.cleaned_data.get('supervisor2')
+        supervisor3 = form.cleaned_data.get('supervisor3')
+        supervisor4 = form.cleaned_data.get('supervisor4')
+        graduate_monitor = form.cleaned_data.get('graduate_monitor')
+
+        supervisors_and_monitors = {
+            supervisor1,
+            supervisor2,
+            supervisor3,
+            supervisor4,
+            graduate_monitor,
+        }
+        supervisors_and_monitors.discard(None)  # Remove None values
+
+        print(supervisors_and_monitors, self.find_judges_inline_form)
+
+        for person in supervisors_and_monitors:
+            if person in self.find_judges_inline_form:
+                e = f"شخص {person} نمی‌تواند هم به عنوان داور و هم به عنوان استاد مشاور یا ناظر تحصیلات تکمیلی باشد."
+
+                # Show the error message in the admin panel
+                self.message_user(request, str(e), level='error')
+                # Add the error to the form so it prevents saving
+                form.add_error(None, e)  # Add the error to the non-field errors
+                # Prevent the save from happening by returning early
+                self.find_JudgeAssignmentForm.save(commit=False)
+                return
+
+                # Prevent the save from happening by returning early
+
+
+
+
     def get_fieldsets(self, request, obj=None):
         # If `obj` is None, it's the Add view
         if obj is None:
@@ -413,7 +476,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             )
         # Show all fieldsets (default) in the Change view
         return super().get_fieldsets(request, obj)
-
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
@@ -589,6 +651,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
             # Assign the combined queryset to the field
             field.queryset = combined_queryset.distinct()
+
+
 
     def save_model(self, request, obj, form, change):
         try:

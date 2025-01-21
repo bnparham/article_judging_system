@@ -154,6 +154,17 @@ class Session(models.Model):
         if self.start_time >= self.end_time:
             raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
 
+        # validate overlaping sessions
+        self.validate_overlapingSessions()
+
+        # Validate professors (supervisors and graduate monitor)
+        roles = [
+            self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4,
+            self.graduate_monitor
+        ]
+        self.validate_professors(roles)
+
+    def validate_overlapingSessions(self):
         # Check for time conflicts in the same term (date) and schedule and class_number
         overlapping_sessions = Session.objects.filter(
             date=self.date,  # Same term/date
@@ -176,13 +187,6 @@ class Session(models.Model):
                     f"کلاس با شناسه {self.id} تداخل زمانی دارد با نشست دیگری ({session.start_time} - {session.end_time}) در {self.get_date_jalali}."
                 )
 
-
-        # Validate professors (supervisors and graduate monitor)
-        roles = [
-            self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4,
-            self.graduate_monitor
-        ]
-        self.validate_professors(roles)
 
     def validate_professors(self, roles):
         # Remove any None values (empty fields)
