@@ -238,6 +238,8 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
 
         self.validate_not_duplicate_professors_and_judges_atSameSession(judges)
 
+        self.validate_professors_as_judges_db()
+
     def validate_judges(self, judges):
 
         session = self.instance
@@ -286,6 +288,36 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 session = conflicting_sessions.first()
                 raise ValidationError(
                     f"تداخل زمانی رخ داده است. داور {judge} به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی در کلاس دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+                )
+
+    def validate_professors_as_judges_db(self):
+        session = self.instance  # Parent `Session` instance
+
+        professors = [
+                session.supervisor1,
+                session.supervisor2,
+                session.supervisor3,
+                session.supervisor4,
+                session.graduate_monitor,]
+
+        for professor in professors:
+            # Find all sessions where the judge is assigned on the same date and schedule
+            sessions_with_judge = Session.objects.filter(
+                date=session.date,  # Same date
+                schedule=session.schedule,  # Same schedule
+                judges__judge=professor  # Judge is assigned to the session
+            ).exclude(id=session.id)  # Exclude the current session if it's an update
+
+            # Check for time conflicts
+            conflicting_sessions = sessions_with_judge.filter(
+                Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
+            )
+
+            if conflicting_sessions.exists():
+                session = conflicting_sessions.first()
+                raise ValidationError(
+                    f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری به عنوان داور با شناسه ({session.id}) "
+                    f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
                 )
 
     def validate_not_duplicate_judges_at_sameSession(self, judges):
