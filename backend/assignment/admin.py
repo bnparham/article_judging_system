@@ -148,58 +148,6 @@ class Consultant_ProfessorCountFilter(admin.SimpleListFilter):
         return queryset
 
 
-class JudgesCountFilter(admin.SimpleListFilter):
-    title = _('تعداد داوران')
-    parameter_name = 'Judges_count'
-
-    def lookups(self, request, model_admin):
-        return [
-            ('0', _('بدون داور')),
-            ('1', _('یک داور')),
-            ('2', _('دو داور')),
-            ('3', _('سه داور')),
-        ]
-
-    def queryset(self, request, queryset):
-        if self.value() == '0':
-            return queryset.filter(
-                judge1__isnull=True,
-                judge2__isnull=True,
-                judge3__isnull=True,
-            )
-        elif self.value() == '1':
-            return queryset.filter(
-                Q(judge1__isnull=False,
-                  judge2__isnull=True,
-                  judge3__isnull=True, ) |
-                Q(judge1__isnull=True,
-                  judge2__isnull=False,
-                  judge3__isnull=True, ) |
-                Q(judge1__isnull=True,
-                  judge2__isnull=True,
-                  judge3__isnull=False, )
-            )
-        elif self.value() == '2':
-            return queryset.filter(
-                Q(judge1__isnull=False,
-                  judge2__isnull=False,
-                  judge3__isnull=True, ) |
-                Q(judge1__isnull=False,
-                  judge2__isnull=True,
-                  judge3__isnull=False, ) |
-                Q(judge1__isnull=True,
-                  judge2__isnull=False,
-                  judge3__isnull=False, )
-            )
-        elif self.value() == '3':
-            return queryset.filter(
-                Q(judge1__isnull=False,
-                  judge2__isnull=False,
-                  judge3__isnull=False, )
-            )
-        return queryset
-
-
 class JudgeAssignmentForm(forms.ModelForm):
     class Meta:
         model = JudgeAssignment
@@ -209,65 +157,69 @@ class JudgeAssignmentForm(forms.ModelForm):
 
         cleaned_data = super().clean()  # Always call the parent clean method
 
-        judge_field = cleaned_data.get('judge')  # Access the 'judge' field specifically
+        # judge_field = cleaned_data.get('judge')  # Access the 'judge' field specifically
 
-        self.validate_judges(judge_field)
+        # self.validate_judges(judge_field)
 
-        self.validate_judges_as_professors_db(judge_field)
+        # self.validate_judges_as_professors_db(judge_field)
 
         return cleaned_data
 
-    def validate_judges(self, judge):
+    # def validate_judges(self, judge):
+    #
+    #     session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
+    #
+    #     # Find all sessions where the judge is assigned on the same date and schedule
+    #     sessions_with_judge = Session.objects.filter(
+    #         date=session.date,  # Same date
+    #         schedule=session.schedule,  # Same schedule
+    #         judges__judge=judge  # Judge is assigned to the session
+    #     ).exclude(id=session.id)  # Exclude the current session if it's an update
+    #
+    #     # Check for time conflicts
+    #     conflicting_sessions = sessions_with_judge.filter(
+    #         Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
+    #     )
+    #
+    #     if conflicting_sessions.exists():
+    #         session = conflicting_sessions.first()
+    #         raise ValidationError(
+    #             f"تداخل زمانی رخ داده است. داور {judge} در کلاس دیگری با شناسه ({session.id}) "
+    #             f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+    #         )
 
-        session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
-
-        # Find all sessions where the judge is assigned on the same date and schedule
-        sessions_with_judge = Session.objects.filter(
-            date=session.date,  # Same date
-            schedule=session.schedule,  # Same schedule
-            judges__judge=judge  # Judge is assigned to the session
-        ).exclude(id=session.id)  # Exclude the current session if it's an update
-
-        # Check for time conflicts
-        conflicting_sessions = sessions_with_judge.filter(
-            Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
-        )
-
-        if conflicting_sessions.exists():
-            session = conflicting_sessions.first()
-            raise ValidationError(
-                f"تداخل زمانی رخ داده است. داور {judge} در کلاس دیگری با شناسه ({session.id}) "
-                f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
-            )
-
-    def validate_judges_as_professors_db(self, judge):
-
-        session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
-
-        overlapping_sessions_2 = Session.objects.filter(
-            date=session.date,  # Same term/date
-            schedule=session.schedule,  # Same semester
-        ).exclude(id=session.id)  # Exclude the current session if it's an update
-
-        conflicting_sessions = overlapping_sessions_2.filter(
-            (
-                    Q(supervisor1=judge) | Q(supervisor2=judge) |
-                    Q(supervisor3=judge) | Q(supervisor4=judge) |
-                    Q(graduate_monitor=judge)
-            )
-            & (
-                Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
-            )
-        )
-
-        if conflicting_sessions.exists():
-            session = conflicting_sessions.first()
-            raise ValidationError(
-                f"تداخل زمانی رخ داده است. داور {judge} به عنوان استاد مشاور یا ناظر تحصیلات تکمیلی در کلاس دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
-            )
+    # def validate_judges_as_professors_db(self, judge):
+    #
+    #     session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
+    #
+    #     overlapping_sessions_2 = Session.objects.filter(
+    #         date=session.date,  # Same term/date
+    #         schedule=session.schedule,  # Same semester
+    #     ).exclude(id=session.id)  # Exclude the current session if it's an update
+    #
+    #     conflicting_sessions = overlapping_sessions_2.filter(
+    #         (
+    #                 Q(supervisor1=judge) | Q(supervisor2=judge) |
+    #                 Q(supervisor3=judge) | Q(supervisor4=judge) |
+    #                 Q(graduate_monitor=judge)
+    #         )
+    #         & (
+    #             Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
+    #         )
+    #     )
+    #
+    #     if conflicting_sessions.exists():
+    #         session = conflicting_sessions.first()
+    #         raise ValidationError(
+    #             f"تداخل زمانی رخ داده است. داور {judge} به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی در کلاس دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+    #         )
 
 
 class JudgeAssignmentFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.error_messages['non_field_errors'] = "Custom error message goes here!"
+
     def clean(self):
         super().clean()
 
@@ -277,12 +229,72 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             for form in self.forms
             if not form.cleaned_data.get('DELETE', False)  # Exclude deleted judges
         ]
+
+        self.validate_judges(judges)
+
+        self.validate_judges_as_professors_db(judges)
+
+        self.validate_not_duplicate_judges_at_sameSession(judges)
+
+        self.validate_not_duplicate_professors_and_judges_atSameSession(judges)
+
+    def validate_judges(self, judges):
+
+        session = self.instance
+
+        for judge in judges:
+            # Find all sessions where the judge is assigned on the same date and schedule
+            sessions_with_judge = Session.objects.filter(
+                date=session.date,  # Same date
+                schedule=session.schedule,  # Same schedule
+                judges__judge=judge  # Judge is assigned to the session
+            ).exclude(id=session.id)  # Exclude the current session if it's an update
+
+            # Check for time conflicts
+            conflicting_sessions = sessions_with_judge.filter(
+                Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
+            )
+
+            if conflicting_sessions.exists():
+                session = conflicting_sessions.first()
+                raise ValidationError(
+                    f"تداخل زمانی رخ داده است. داور {judge} در کلاس دیگری با شناسه ({session.id}) "
+                    f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+                )
+
+    def validate_judges_as_professors_db(self, judges):
+
+        session = self.instance
+        overlapping_sessions_2 = Session.objects.filter(
+            date=session.date,  # Same term/date
+            schedule=session.schedule,  # Same semester
+        ).exclude(id=session.id)  # Exclude the current session if it's an update
+
+        for judge in judges:
+            conflicting_sessions = overlapping_sessions_2.filter(
+                (
+                        Q(supervisor1=judge) | Q(supervisor2=judge) |
+                        Q(supervisor3=judge) | Q(supervisor4=judge) |
+                        Q(graduate_monitor=judge)
+                )
+                & (
+                    Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
+                )
+            )
+
+            if conflicting_sessions.exists():
+                session = conflicting_sessions.first()
+                raise ValidationError(
+                    f"تداخل زمانی رخ داده است. داور {judge} به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی در کلاس دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+                )
+
+    def validate_not_duplicate_judges_at_sameSession(self, judges):
         if len(judges) != len(set(judges)):
             raise ValidationError(
                 f"داوران در یک نشست نمیتوانند تکراری باشند"
             )
 
-
+    def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
         # Validate against supervisors and graduate_monitor in the parent form
         parent_session = self.instance  # Parent `Session` instance
         for judge in judges:

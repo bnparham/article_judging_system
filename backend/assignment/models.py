@@ -185,7 +185,7 @@ class Session(models.Model):
 
         # Check for duplicates
         if len(professors) != len(set(professors)):
-            raise ValidationError("اساتید نمی‌توانند در یک نشست تکراری باشند.")
+            raise ValidationError("اساتید حاظر در اطلاعات برگزار کنندگان (استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) نمی‌توانند در یک نشست تکراری باشند.")
 
         overlapping_sessions_2 = Session.objects.filter(
             date=self.date,  # Same term/date
