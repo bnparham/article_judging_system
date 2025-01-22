@@ -202,7 +202,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                e
+                f'❌ {e}'
             )
     def validate_judges_as_professors_db(self, judges):
         session = self.instance
@@ -249,7 +249,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                e
+                f'❌ {e}'
             )
     def validate_professors_as_judges_db(self):
         session = self.instance  # Parent `Session` instance
@@ -297,14 +297,18 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
             )
             messages.error(self.request, f"خطا : {e}")
-            raise ValidationError(e)
+            raise ValidationError(
+                f'❌ {e}'
+            )
     def validate_not_duplicate_judges_at_sameSession(self, judges):
         if len(judges) != len(set(judges)):
             e = (
                 f"داوران در یک نشست نمیتوانند تکراری باشند"
             )
             messages.error(self.request, f"خطا : {e}")
-            raise ValidationError(e)
+            raise ValidationError(
+                f'❌ {e}'
+            )
     def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
         # Validate against supervisors and graduate_monitor in the parent form
         parent_session = self.instance  # Parent `Session` instance
@@ -318,7 +322,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             ]:
                 e = (f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
                 messages.error(self.request, f"خطا : {e}")
-                raise ValidationError(e)
+                raise ValidationError(
+                    f'❌ {e}'
+                )
 
 
 class JudgeAssignmentInline(admin.TabularInline):
