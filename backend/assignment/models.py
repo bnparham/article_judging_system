@@ -143,7 +143,7 @@ class Session(models.Model):
 
     def clean(self):
         if self.start_time >= self.end_time:
-            raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
+            raise ValidationError("خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
 
         # validate overlaping sessions
         self.validate_overlapingSessions()

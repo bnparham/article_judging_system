@@ -559,15 +559,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
-    def save_model(self, request, obj, form, change):
-        try:
-            obj.clean()  # Call the custom clean method before saving
-        except ValidationError as e:
-            # Catch the validation error and display it
-            messages.error(request, str(e))
-            self.message_user(request, str(e), level='error')
-            return  # Don't save the model if validation fails
-        super().save_model(request, obj, form, change)  # Save if no error
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
