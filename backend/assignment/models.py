@@ -119,7 +119,7 @@ class Session(models.Model):
     session_status = models.BooleanField(
         default=False,
         help_text="آیا این نشست به اتمام رسیده یا خیر",
-        verbose_name="بررسی وضعیت نشست"
+        verbose_name="وضعیت اتمام نشست"
     )
 
     created_at = models.DateTimeField(

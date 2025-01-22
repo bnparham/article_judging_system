@@ -154,6 +154,7 @@ class JudgeAssignmentForm(forms.ModelForm):
         model = JudgeAssignment
         fields = ['judge']
 
+
 class JudgeAssignmentFormSet(BaseInlineFormSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -192,7 +193,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
         ).annotate(
             conflict_judge_first_name=F('judges__judge__first_name'),
-            conflict_judge_last_name=F('judges__judge__last_name'),)
+            conflict_judge_last_name=F('judges__judge__last_name'), )
 
         if conflicting_sessions.exists():
             conflict = conflicting_sessions.first()
@@ -204,6 +205,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             raise ValidationError(
                 f'❌ {e}'
             )
+
     def validate_judges_as_professors_db(self, judges):
         session = self.instance
         # Filter all sessions on the same date and schedule, excluding the current session
@@ -227,22 +229,23 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         # If there are conflicts, raise a validation error
         if conflicting_sessions.exists():
             conflict_session = conflicting_sessions.annotate(
-            conflict_field=Case(
-                When(supervisor1__in=judges,
-                     then=Concat(F('supervisor1__first_name'), Value(' '), F('supervisor1__last_name'))),  # Concatenate first_name and last_name
-                When(supervisor2__in=judges,
-                     then=Concat(F('supervisor2__first_name'), Value(' '), F('supervisor2__last_name'))),
-                When(supervisor3__in=judges,
-                     then=Concat(F('supervisor3__first_name'), Value(' '), F('supervisor3__last_name'))),
-                When(supervisor4__in=judges,
-                     then=Concat(F('supervisor4__first_name'), Value(' '), F('supervisor4__last_name'))),
-                When(graduate_monitor__in=judges, then=Concat(F('graduate_monitor__first_name'), Value(' '),
-                                                              F('graduate_monitor__last_name'))),
-                # Assuming graduate_monitor is a ForeignKey
-                default=Value('Unknown'),
-                output_field=CharField(),
-            )
-        ).first()
+                conflict_field=Case(
+                    When(supervisor1__in=judges,
+                         then=Concat(F('supervisor1__first_name'), Value(' '), F('supervisor1__last_name'))),
+                    # Concatenate first_name and last_name
+                    When(supervisor2__in=judges,
+                         then=Concat(F('supervisor2__first_name'), Value(' '), F('supervisor2__last_name'))),
+                    When(supervisor3__in=judges,
+                         then=Concat(F('supervisor3__first_name'), Value(' '), F('supervisor3__last_name'))),
+                    When(supervisor4__in=judges,
+                         then=Concat(F('supervisor4__first_name'), Value(' '), F('supervisor4__last_name'))),
+                    When(graduate_monitor__in=judges, then=Concat(F('graduate_monitor__first_name'), Value(' '),
+                                                                  F('graduate_monitor__last_name'))),
+                    # Assuming graduate_monitor is a ForeignKey
+                    default=Value('Unknown'),
+                    output_field=CharField(),
+                )
+            ).first()
             e = (
                 f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
                 f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی)"
@@ -251,6 +254,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             raise ValidationError(
                 f'❌ {e}'
             )
+
     def validate_professors_as_judges_db(self):
         session = self.instance  # Parent `Session` instance
         # Combine all professors into a single queryable list
@@ -300,6 +304,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             raise ValidationError(
                 f'❌ {e}'
             )
+
     def validate_not_duplicate_judges_at_sameSession(self, judges):
         if len(judges) != len(set(judges)):
             e = (
@@ -309,6 +314,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             raise ValidationError(
                 f'❌ {e}'
             )
+
     def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
         # Validate against supervisors and graduate_monitor in the parent form
         parent_session = self.instance  # Parent `Session` instance
@@ -341,7 +347,7 @@ class JudgeAssignmentInline(admin.TabularInline):
         return qs.select_related('judge', 'session')  # Optimize related field
 
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super(JudgeAssignmentInline, self).get_formset(request,obj,**kwargs)
+        formset = super(JudgeAssignmentInline, self).get_formset(request, obj, **kwargs)
         formset.request = request
         return formset
 
@@ -409,48 +415,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                        'get_student_role')
 
     # Fieldsets to group fields logically in the form view
-    fieldsets = (
-        (_('اطلاعات جلسه دفاعیه'), {
-            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
-            'description': _("""
-            ✅
-نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
-در غیر این صورت با پیغام خطا مواجه خواهید شد               
-            """)
-        }),
-        (_('اطلاعات دانشجو'), {
-            'fields': (
-                'student',
-                'get_student_role',
-            )
-        }),
-        (_('اطلاعات استاد راهنما'), {
-            'fields': (
-                'supervisor1', 'supervisor2'
-            )
-        }),
-        (_('اطلاعات استاد مشاور'), {
-            'fields': (
-                'supervisor3',
-                'supervisor4',
-            )
-        }),
-        (_('اطلاعات ناظر تحصیلات تکمیلی'), {
-            'fields': (
-                'graduate_monitor',
-            )
-        }),
-        (_('تاریخ ایجاد / ویرایش این جلسه'), {
-            'fields': ('get_created_at_jalali',
-                       'get_updated_at_jalali',
-                       )
-        }),
-        (_('اطلاعات اضافی'), {
-            'fields': ('description',
-                       ),
-            'classes': ('collapse',),
-        })
-    )
 
     # class Media:
     #     js = ('js/admin_assignment_session/filter_supervisors.js',
@@ -483,7 +447,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 }),
                 (_('اطلاعات ناظر تحصیلات تکمیلی'), {
                     'fields': (
-                     'graduate_monitor',
+                        'graduate_monitor',
                     )
                 }),
                 (_('اطلاعات اضافی'), {
@@ -494,6 +458,95 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 })
             )
         # Show all fieldsets (default) in the Change view
+        else:
+            match request.user.is_superuser:
+                case True:
+                    return (
+                        (_('اطلاعات جلسه دفاعیه'), {
+                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'description': _("""
+                                ✅
+                    نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
+                    در غیر این صورت با پیغام خطا مواجه خواهید شد               
+                                """)
+                        }),
+                        (_('اطلاعات دانشجو'), {
+                            'fields': (
+                                'student',
+                                'get_student_role',
+                            )
+                        }),
+                        (_('اطلاعات استاد راهنما'), {
+                            'fields': (
+                                'supervisor1', 'supervisor2'
+                            )
+                        }),
+                        (_('اطلاعات استاد مشاور'), {
+                            'fields': (
+                                'supervisor3',
+                                'supervisor4',
+                            )
+                        }),
+                        (_('اطلاعات ناظر تحصیلات تکمیلی'), {
+                            'fields': (
+                                'graduate_monitor',
+                            )
+                        }),
+                        (_('تاریخ ایجاد / ویرایش این جلسه'), {
+                            'fields': ('get_created_at_jalali',
+                                       'get_updated_at_jalali',
+                                       )
+                        }),
+                        (_('اطلاعات اضافی'), {
+                            'fields': ('description', 'session_status'
+                                       ),
+                            'classes': ('collapse',),
+                        })
+                    )
+                case False:
+                    return (
+                        (_('اطلاعات جلسه دفاعیه'), {
+                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'description': _("""
+                        ✅
+            نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
+            در غیر این صورت با پیغام خطا مواجه خواهید شد               
+                        """)
+                        }),
+                        (_('اطلاعات دانشجو'), {
+                            'fields': (
+                                'student',
+                                'get_student_role',
+                            )
+                        }),
+                        (_('اطلاعات استاد راهنما'), {
+                            'fields': (
+                                'supervisor1', 'supervisor2'
+                            )
+                        }),
+                        (_('اطلاعات استاد مشاور'), {
+                            'fields': (
+                                'supervisor3',
+                                'supervisor4',
+                            )
+                        }),
+                        (_('اطلاعات ناظر تحصیلات تکمیلی'), {
+                            'fields': (
+                                'graduate_monitor',
+                            )
+                        }),
+                        (_('تاریخ ایجاد / ویرایش این جلسه'), {
+                            'fields': ('get_created_at_jalali',
+                                       'get_updated_at_jalali',
+                                       )
+                        }),
+                        (_('اطلاعات اضافی'), {
+                            'fields': ('description',
+                                       ),
+                            'classes': ('collapse',),
+                        })
+                    )
+
         return super().get_fieldsets(request, obj)
 
     def get_readonly_fields(self, request, obj=None):
