@@ -373,9 +373,10 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
     inlines = [JudgeAssignmentInline]
     # Fields to be displayed in the list view
-    list_display = ('get_id', 'student', 'schedule', 'get_date_jalali',
+    list_display = ('get_id', 'student', 'get_student_role', 'schedule', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
-                    'class_number',
+                    'get_class_number',
+                    'get_judges_number_assigned',
                     'session_status',
                     'get_updated_at_jalali')
 
@@ -402,7 +403,10 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     ]
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
-    readonly_fields = ('get_created_at_jalali', 'get_updated_at_jalali', 'is_active')
+    readonly_fields = ('get_created_at_jalali',
+                       'get_updated_at_jalali',
+                       'is_active',
+                       'get_student_role')
 
     # Fieldsets to group fields logically in the form view
     fieldsets = (
@@ -414,9 +418,27 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 در غیر این صورت با پیغام خطا مواجه خواهید شد               
             """)
         }),
-        (_('اطلاعات برگزار کنندگان'), {
-            'fields': ('student', 'supervisor1', 'supervisor2', 'supervisor3',
-                       'supervisor4', 'graduate_monitor',)
+        (_('اطلاعات دانشجو'), {
+            'fields': (
+                'student',
+                'get_student_role',
+            )
+        }),
+        (_('اطلاعات استاد راهنما'), {
+            'fields': (
+                'supervisor1', 'supervisor2'
+            )
+        }),
+        (_('اطلاعات استاد مشاور'), {
+            'fields': (
+                'supervisor3',
+                'supervisor4',
+            )
+        }),
+        (_('اطلاعات ناظر تحصیلات تکمیلی'), {
+            'fields': (
+                'graduate_monitor',
+            )
         }),
         (_('تاریخ ایجاد / ویرایش این جلسه'), {
             'fields': ('get_created_at_jalali',
@@ -443,17 +465,27 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 (_('اطلاعات جلسه دفاعیه'), {
                     'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
                 }),
-                (_('اطلاعات برگزار کنندگان'), {
+                (_('اطلاعات دانشجو'), {
                     'fields': (
-                        'student', 'supervisor1', 'supervisor2', 'supervisor3',
-                        'supervisor4', 'graduate_monitor',
+                        'student',
                     )
                 }),
-                # (_('بخش هیئت داوران'), {
-                #     'fields': (
-                #         'judge1', 'judge2', 'judge3',
-                #     )
-                # }),
+                (_('اطلاعات استاد راهنما'), {
+                    'fields': (
+                        'supervisor1', 'supervisor2'
+                    )
+                }),
+                (_('اطلاعات استاد مشاور'), {
+                    'fields': (
+                        'supervisor3',
+                        'supervisor4',
+                    )
+                }),
+                (_('اطلاعات ناظر تحصیلات تکمیلی'), {
+                    'fields': (
+                     'graduate_monitor',
+                    )
+                }),
                 (_('اطلاعات اضافی'), {
                     'fields': ('description',
                                ),
@@ -479,6 +511,22 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     @admin.display(description='شناسه', ordering='id')
     def get_id(self, obj):
         return obj.id
+
+    @admin.display(description='مقطع تحصیلی')
+    def get_student_role(self, obj):
+        ROLES_DICT = {
+            'Ph.D.': 'دکتری',
+            'Master': 'ارشد',
+        }
+        return ROLES_DICT[obj.student.role]
+
+    @admin.display(description='شماره کلاس')
+    def get_class_number(self, obj):
+        return obj.class_number
+
+    @admin.display(description='تعداد داوران')
+    def get_judges_number_assigned(self, obj):
+        return obj.judges.count()
 
     @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
     def get_created_at_jalali(self, obj):

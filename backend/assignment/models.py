@@ -145,6 +145,12 @@ class Session(models.Model):
         if self.start_time >= self.end_time:
             raise ValidationError("خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
 
+        # Filter sessions with the same date and schedule, excluding the current session
+        overlapping_sessions = Session.objects.filter(
+            date=self.date,
+            schedule=self.schedule,
+        ).exclude(id=self.id)
+
         # validate overlaping sessions
         self.validate_overlapingSessions()
 
@@ -153,7 +159,24 @@ class Session(models.Model):
             self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4,
             self.graduate_monitor
         ]
-        self.validate_professors(roles)
+        self.validate_professors(roles, overlapping_sessions)
+
+        self.valiadte_students(overlapping_sessions)
+
+    def valiadte_students(self, overlapping_sessions):
+        # Find all conflicting sessions with any of the given student
+        conflicting_sessions = overlapping_sessions.filter(
+            (
+                    Q(student=self.student)
+            )
+            & Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+        )
+        if conflicting_sessions.exists():
+            conflict_session = conflicting_sessions.first()
+            raise ValidationError(
+                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. دانشجو ({conflict_session.student}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+            )
 
     def validate_overlapingSessions(self):
         # Check for time conflicts in the same term (date) and schedule and class_number
@@ -179,7 +202,7 @@ class Session(models.Model):
                 )
 
 
-    def validate_professors(self, roles):
+    def validate_professors(self, roles, overlapping_sessions):
         # Remove any None values (empty fields)
         professors = [prof for prof in roles if prof is not None]
 
@@ -187,13 +210,8 @@ class Session(models.Model):
         if len(professors) != len(set(professors)):
             raise ValidationError("اساتید حاظر در اطلاعات برگزار کنندگان (استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) نمی‌توانند در یک نشست تکراری باشند.")
 
-        # Filter sessions with the same date and schedule, excluding the current session
-        overlapping_sessions = Session.objects.filter(
-            date=self.date,
-            schedule=self.schedule,
-        ).exclude(id=self.id)
 
-        # Find all conflicting sessions with any of the given judges
+        # Find all conflicting sessions with any of the given professors
         conflicting_sessions = overlapping_sessions.filter(
             (
                     Q(supervisor1__in=professors) |
