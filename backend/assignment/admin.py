@@ -1,8 +1,13 @@
+import openpyxl
+
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Concat
 from django.forms import BaseInlineFormSet
-from django.shortcuts import redirect
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import path
+from django.utils.html import format_html
 
 from jalali_date import datetime2jalali, date2jalali
 from jalali_date.admin import ModelAdminJalaliMixin
@@ -13,6 +18,8 @@ from django.db.models import Q, F, Case, When, Value, CharField
 from django import forms
 from jalali_date.widgets import AdminJalaliDateWidget
 from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
+
+from schedule.models import Schedule
 
 
 class MonthFilter(admin.SimpleListFilter):
@@ -420,6 +427,76 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     #     js = ('js/admin_assignment_session/filter_supervisors.js',
     #           'js/admin_assignment_session/filter_graduate_monitor.js',
     #           'js/admin_assignment_session/filter_judges.js',)
+
+    # Add a custom URL to the admin panel
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('download_session/', self.admin_site.admin_view(self.download_session), name='download_session'),
+        ]
+        return custom_urls + urls
+
+    # Add a button/link in the admin toolbar
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['custom_button'] = format_html(
+            '<a class="button" href="download_session/">دانلود گزارش جلسه‌ها به صورت Excel</a>'
+        )
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def download_session(self, request):
+        if request.method == "POST":  # If the user clicks "Download CSV"
+            schedule_filter = request.POST.get('schedule', None)
+
+            # Query the filtered data
+            if schedule_filter:
+                sessions = Session.objects.filter(schedule=schedule_filter)
+            else:
+                sessions = Session.objects.all()
+
+            # Create a workbook and add a worksheet
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Schedules"
+
+            # Write the header row (with Persian text)
+            sheet.append(['سال', 'نیم‌سال', 'تاریخ', 'ساعت شروع', 'ساعت پایان',
+                          'دانشجو', 'استاد راهنما اول', 'استاد راهنما دوم',
+                          'استاد مشاور اول', 'استاد مشاور دوم', 'ناظر تحصیلات تکمیلی',
+                          "داوران حاضر در این نشست"])
+            for session in sessions:
+                # Append each schedule as a row
+                sheet.append([
+                    session.schedule.year,
+                    session.schedule.get_semester_display(),
+                    date2jalali(session.date).strftime('%a, %d %b %Y'),
+                    session.start_time,
+                    session.end_time,
+                    session.student.name,
+                    session.supervisor1.name,
+                    session.supervisor2.name,
+                    session.supervisor3.name,
+                    session.supervisor4.name,
+                    session.graduate_monitor.name,
+                    # Get the names of all judges assigned to this session
+                    ", ".join(judge_assignment.judge.name for judge_assignment in session.judges.all())
+                ])
+            # Prepare the response as an Excel file
+            filename = f"schedules"
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+
+            # Save the workbook to the response
+            workbook.save(response)
+            return response
+
+        find_all_schedules = Schedule.objects.all()
+        # If the user accesses the page
+        return render(request, 'admin/download_session.html', {
+            'schedules': find_all_schedules
+        })
 
     def get_fieldsets(self, request, obj=None):
         # If `obj` is None, it's the Add view
