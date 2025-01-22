@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
 from django.contrib import messages  # For displaying messages
-from .models import User, GroupManager
+from .models import User
 
 
 @receiver(user_logged_in)
@@ -51,24 +51,3 @@ def handle_failed_login(sender, credentials, request, **kwargs):
         # Handle invalid username scenario - display an error message
         messages.error(request, 'نام کاربری یا رمز عبور نامعتبر است. لطفا دوباره امتحان کنید.')
 
-
-@receiver(post_save, sender=GroupManager)
-def assign_group_manager_group(sender, instance, created, **kwargs):
-    """
-    Automatically assign the 'group_manager_P1' group to the user
-    related to the GroupManager instance, both on create and update.
-    """
-    try:
-        # Get the group named 'group_manager_P1'
-        group, created = Group.objects.get_or_create(name='group_manager_P1')
-
-        # Get the user associated with the professor in GroupManager
-        user = instance.professor.user
-
-        # Add the user to the group if not already a member
-        if not user.groups.filter(name='group_manager_P1').exists():
-            user.groups.add(group)
-            user.save()
-
-    except Group.DoesNotExist:
-        print("Group 'group_manager_P1' does not exist.")

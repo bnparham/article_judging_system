@@ -2,9 +2,8 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from jalali_date import datetime2jalali
-from .models import User, Group, GroupManager, Student, Teacher
+from .models import User, EducationalGroup, Student, Teacher
 from django.utils.translation import gettext_lazy as _
-
 
 class MonthFilter(admin.SimpleListFilter):
     title = _('ماه')
@@ -64,10 +63,10 @@ class UserAdmin(admin.ModelAdmin):
             'fields': ('username', 'email', 'first_name', 'last_name',)
         }),
         (_('Permisions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser' ,'verify_account')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
         }),
         (_('Contact'), {
-            'fields': ('phone_number', 'address')
+            'fields': ('phone_number',)
         }),
         (_('Details'), {
             'fields': ('failed_login_attempts',
@@ -104,13 +103,15 @@ class UserAdmin(admin.ModelAdmin):
             # Exclude the "سایر اطلاعات" fieldset
             return (
                 ('Info', {
-                    'fields': ('username', 'email', 'first_name', 'last_name',)
+                    'fields': ('first_name', 'last_name', 'username', 'phone_number', 'email')
                 }),
                 (_('Permisions'), {
                     'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
                 }),
-                (_('Contact'), {
-                    'fields': ('phone_number', 'address')
+                (_('Groups and Permissions'), {
+                    'fields': ('groups', 'user_permissions'),
+                    'classes': ('collapse',),  # Optional: Adds a collapsible section in the admin
+                    'description': _('Manage the groups and permissions for this user.'),
                 }),
             )
         # Show all fieldsets (default) in the Change view
@@ -167,7 +168,7 @@ class UserAdmin(admin.ModelAdmin):
 
 
 
-@admin.register(Group)
+@admin.register(EducationalGroup)
 class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'field_of_study', 'role',
                     'get_created_at_jalali', 'get_updated_at_jalali')
@@ -200,32 +201,47 @@ class GroupAdmin(admin.ModelAdmin):
             return []
         return self.readonly_fields
 
-@admin.register(GroupManager)
-class GroupManagerAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'user_national_code', 'group',
-                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_groupManger', 'edit_user')
-    search_fields = ('user_full_name', 'group__name', 'user__email')
-    list_filter = ('group', 'created_at', 'updated_at')
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('user_full_name', 'email', 'phone_number', 'student_number', 'role',
+                    'educational_group', 'admission_year', 'gender',
+                    'edit_student')
+    search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
+    list_filter = ('role', 'status', 'educational_group', 'military_status', 'program_type', 'gender')
+    ordering = ('student_number',)
 
     # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
+    readonly_fields = (
+        'first_name', 'last_name', 'email', 'phone_number',
+        'student_number', 'educational_group', 'role',
+        'admission_year', 'gender', 'military_status', 'program_type',
+        'get_created_at_jalali',
+        'get_updated_at_jalali'
+    )
+
+    def has_add_permission(self, request, obj=None):
+        return False  # Always return False to disable adding new objects
+
+    # Prevent deleting objects in the admin panel
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
     def user_full_name(self, obj):
-        return f"{obj.professor.user.name}"
+        return f"{obj.first_name} {obj.last_name}"
     user_full_name.short_description = "نام و نام خانوادگی"
 
-    def user_national_code(self, obj):
-        return f"{obj.professor.national_code}"
-    user_national_code.short_description = "کد ملی"
+    def edit_student(self, obj):
+        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
+    edit_student.short_description = "اطلاعات کامل دانشجو"
 
-    def edit_groupManger(self, obj):
-        return format_html('<a href="{}">ویرایش مدیر گروه</a>', f"/admin/account/groupmanager/{obj.id}/change/")
-    edit_groupManger.short_description = "ورود به پنل ویرایش مدیر گروه"
 
-    def edit_user(self, obj):
-        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.professor.user.uuid}/change/")
-    edit_user.short_description = "ورود به پنل ویرایش کاربر"
+    def get_readonly_fields(self, request, obj=None):
+        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
+        if obj is None:
+            # Return an empty list of readonly fields in the Add view
+            return []
+        return self.readonly_fields
 
     @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
     def get_created_at_jalali(self, obj):
@@ -243,89 +259,31 @@ class GroupManagerAdmin(admin.ModelAdmin):
 
     def get_list_display_links(self, request, list_display):
         # Remove links from all columns
-        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
-
-@admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_number', 'user', 'role', 'status',
-                    'lessons_group', 'get_created_at_jalali', 'get_updated_at_jalali')
-    search_fields = ('student_number', 'user__email', 'user__first_name', 'user__last_name')
-    list_filter = ('role', 'status', 'lessons_group', 'created_at', 'updated_at')
-    ordering = ('student_number',)
-
-    # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
-    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
-    def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
-    def get_updated_at_jalali(self, obj):
-        if obj.updated_at:
-            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    def save_model(self, request, obj, form, change):
-        # Check if the user is assigned as a teacher
-        if hasattr(obj.user, 'teacher_profile'):
-            self.message_user(
-                request,
-                _("این کاربر به عنوان استاد تعیین شده است و نمی‌توانید او را به عنوان یک دانشجو ثبت کنید."),
-                level='error'
-            )
-            return
-        super().save_model(request, obj, form, change)
-
-
+        return ('edit_student')  # Keep the link only on `edit_teacher`
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     list_display = ('user_full_name', 'national_code',
-                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher', 'edit_user')
-    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'national_code')
+                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
+    search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')
     list_filter = ('created_at', 'updated_at')
-    ordering = ('user__first_name',)
+    ordering = ('first_name', 'last_name')
 
     # Read-only fields in the form view
     readonly_fields = ['get_created_at_jalali',
                        'get_updated_at_jalali']
 
     def user_full_name(self, obj):
-        return f"{obj.user.name}"
+        return f"{obj.first_name} {obj.last_name}"
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_teacher(self, obj):
         return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/account/teacher/{obj.id}/change/")
     edit_teacher.short_description = "ورود به پنل ویرایش استاد"
 
-    def edit_user(self, obj):
-        return format_html('<a href="{}">ویرایش کاربر</a>', f"/admin/account/user/{obj.user.uuid}/change/")
-    edit_user.short_description = "ورود به پنل ویرایش کاربر"
-
     def get_list_display_links(self, request, list_display):
         # Remove links from all columns
-        return ('edit_teacher', 'edit_user')  # Keep the link only on `edit_teacher`
+        return ('edit_teacher')  # Keep the link only on `edit_teacher`
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
@@ -348,14 +306,3 @@ class TeacherAdmin(admin.ModelAdmin):
             return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
-
-    def save_model(self, request, obj, form, change):
-        # Check if the user is assigned as a teacher
-        if hasattr(obj.user, 'student_profile'):
-            self.message_user(
-                request,
-                _("این کاربر به عنوان دانشجو تعیین شده است و نمی‌توانید او را به عنوان یک استاد ثبت کنید."),
-                level='error'
-            )
-            return
-        super().save_model(request, obj, form, change)
