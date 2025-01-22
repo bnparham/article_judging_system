@@ -142,7 +142,6 @@ class Session(models.Model):
                                     name='unique_session',)]
 
     def clean(self):
-
         if self.start_time >= self.end_time:
             raise ValidationError("تاریخ شروع باید قبل از تاریخ پایان باشد !")
 

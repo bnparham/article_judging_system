@@ -245,7 +245,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         ).first()
             e = (
                 f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) ."
+                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی)"
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -357,7 +357,16 @@ class SessionAdminForm(forms.ModelForm):
         }
 
     def clean(self):
-        ...
+        cleaned_data = super(SessionAdminForm, self).clean()
+        try:
+            # Call the model's clean method
+            self.instance.clean()
+        except ValidationError as e:
+            # Raise form-level validation errors
+            messages.error(self.request, e.message)
+            raise forms.ValidationError(e.messages)
+
+        return cleaned_data
 
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
@@ -462,6 +471,11 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             return []
         return self.readonly_fields
 
+    def get_form(self, request, *args, **kwargs):
+        form = super(SessionAdmin, self).get_form(request, *args, **kwargs)
+        form.request = request  # Pass the request object to the form
+        return form
+
     @admin.display(description='شناسه', ordering='id')
     def get_id(self, obj):
         return obj.id
@@ -550,6 +564,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             obj.clean()  # Call the custom clean method before saving
         except ValidationError as e:
             # Catch the validation error and display it
+            messages.error(request, str(e))
             self.message_user(request, str(e), level='error')
             return  # Don't save the model if validation fails
         super().save_model(request, obj, form, change)  # Save if no error
