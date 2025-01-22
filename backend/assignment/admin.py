@@ -154,72 +154,9 @@ class JudgeAssignmentForm(forms.ModelForm):
         model = JudgeAssignment
         fields = ['judge']
 
-    def clean(self):
-
-        cleaned_data = super().clean()  # Always call the parent clean method
-
-        # judge_field = cleaned_data.get('judge')  # Access the 'judge' field specifically
-
-        # self.validate_judges(judge_field)
-
-        # self.validate_judges_as_professors_db(judge_field)
-
-        return cleaned_data
-
-    # def validate_judges(self, judge):
-    #
-    #     session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
-    #
-    #     # Find all sessions where the judge is assigned on the same date and schedule
-    #     sessions_with_judge = Session.objects.filter(
-    #         date=session.date,  # Same date
-    #         schedule=session.schedule,  # Same schedule
-    #         judges__judge=judge  # Judge is assigned to the session
-    #     ).exclude(id=session.id)  # Exclude the current session if it's an update
-    #
-    #     # Check for time conflicts
-    #     conflicting_sessions = sessions_with_judge.filter(
-    #         Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
-    #     )
-    #
-    #     if conflicting_sessions.exists():
-    #         session = conflicting_sessions.first()
-    #         raise ValidationError(
-    #             f"تداخل زمانی رخ داده است. داور {judge} در کلاس دیگری با شناسه ({session.id}) "
-    #             f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
-    #         )
-
-    # def validate_judges_as_professors_db(self, judge):
-    #
-    #     session = self.instance.session  # Assuming you have a 'session' field in JudgeAssignment
-    #
-    #     overlapping_sessions_2 = Session.objects.filter(
-    #         date=session.date,  # Same term/date
-    #         schedule=session.schedule,  # Same semester
-    #     ).exclude(id=session.id)  # Exclude the current session if it's an update
-    #
-    #     conflicting_sessions = overlapping_sessions_2.filter(
-    #         (
-    #                 Q(supervisor1=judge) | Q(supervisor2=judge) |
-    #                 Q(supervisor3=judge) | Q(supervisor4=judge) |
-    #                 Q(graduate_monitor=judge)
-    #         )
-    #         & (
-    #             Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
-    #         )
-    #     )
-    #
-    #     if conflicting_sessions.exists():
-    #         session = conflicting_sessions.first()
-    #         raise ValidationError(
-    #             f"تداخل زمانی رخ داده است. داور {judge} به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی در کلاس دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
-    #         )
-
-
 class JudgeAssignmentFormSet(BaseInlineFormSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.error_messages['non_field_errors'] = "Custom error message goes here!"
 
     def clean(self):
         super().clean()
@@ -259,9 +196,13 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
 
         if conflicting_sessions.exists():
             conflict = conflicting_sessions.first()
-            raise ValidationError(
+            e = (
                 f"تداخل زمانی رخ داده است. داور {conflict.conflict_judge_first_name} {conflict.conflict_judge_last_name} در کلاس دیگری با شناسه ({conflict.id}) "
                 f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+            )
+            messages.error(self.request, f"خطا : {e}")
+            raise ValidationError(
+                e
             )
     def validate_judges_as_professors_db(self, judges):
         session = self.instance
@@ -302,9 +243,13 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 output_field=CharField(),
             )
         ).first()
-            raise ValidationError(
+            e = (
                 f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
                 f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) ."
+            )
+            messages.error(self.request, f"خطا : {e}")
+            raise ValidationError(
+                e
             )
     def validate_professors_as_judges_db(self):
         session = self.instance  # Parent `Session` instance
@@ -347,16 +292,19 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                     output_field=CharField(),
                 )
             ).first()
-
-            raise ValidationError(
+            e = (
                 f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد {conflict.conflict_professor} به عنوان داور در کلاس دیگری با شناسه ({conflict.id}) "
                 f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
             )
+            messages.error(self.request, f"خطا : {e}")
+            raise ValidationError(e)
     def validate_not_duplicate_judges_at_sameSession(self, judges):
         if len(judges) != len(set(judges)):
-            raise ValidationError(
+            e = (
                 f"داوران در یک نشست نمیتوانند تکراری باشند"
             )
+            messages.error(self.request, f"خطا : {e}")
+            raise ValidationError(e)
     def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
         # Validate against supervisors and graduate_monitor in the parent form
         parent_session = self.instance  # Parent `Session` instance
@@ -368,7 +316,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 parent_session.supervisor4,
                 parent_session.graduate_monitor,
             ]:
-                raise ValidationError(f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
+                e = (f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
+                messages.error(self.request, f"خطا : {e}")
+                raise ValidationError(e)
 
 
 class JudgeAssignmentInline(admin.TabularInline):
@@ -383,6 +333,11 @@ class JudgeAssignmentInline(admin.TabularInline):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('judge', 'session')  # Optimize related field
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super(JudgeAssignmentInline, self).get_formset(request,obj,**kwargs)
+        formset.request = request
+        return formset
 
 
 class SessionAdminForm(forms.ModelForm):
@@ -592,56 +547,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             self.message_user(request, str(e), level='error')
             return  # Don't save the model if validation fails
         super().save_model(request, obj, form, change)  # Save if no error
-
-    # def save_related(self, request, form, formsets, change):
-    #
-    #     self.find_JudgeAssignmentForm = None
-    #     self.find_judges_inline_form = []
-    #     super().save_related(request, form, formsets, change)
-    #
-    #     # Access related `JudgeAssignment` objects
-    #     for formset in formsets:
-    #         if formset.model == JudgeAssignment:
-    #             self.find_JudgeAssignmentForm = formset
-    #             self.find_JudgeAssignmentForm.save(commit=False)
-    #             for related_obj in formset.forms:
-    #
-    #                 judge_assignment_instance = related_obj.instance
-    #
-    #                 # Ensure the instance is valid and saved before accessing its fields
-    #                 if judge_assignment_instance.pk:  # Check if the instance is saved
-    #                     # print(f"Judge Assignment: {judge_assignment_instance}")
-    #                     # print(f"Assigned Judge: {judge_assignment_instance.judge}")
-    #                     self.find_judges_inline_form.append(judge_assignment_instance.judge)
-    #                 else:
-    #                     # this is happen for empty fields !
-    #                     # print("Instance not saved yet or incomplete.")
-    #                     continue
-    #
-    #     # Validate find_judges_inline_form with Session Fields (supervisors, graduate_monitor) !
-    #
-    #     supervisor1 = form.cleaned_data.get('supervisor1')
-    #     supervisor2 = form.cleaned_data.get('supervisor2')
-    #     supervisor3 = form.cleaned_data.get('supervisor3')
-    #     supervisor4 = form.cleaned_data.get('supervisor4')
-    #     graduate_monitor = form.cleaned_data.get('graduate_monitor')
-    #
-    #     supervisors_and_monitors = {
-    #         supervisor1,
-    #         supervisor2,
-    #         supervisor3,
-    #         supervisor4,
-    #         graduate_monitor,
-    #     }
-    #     supervisors_and_monitors.discard(None)  # Remove None values
-    #
-    #     for judge in self.find_judges_inline_form:
-    #         if judge in supervisors_and_monitors:
-    #             # Send the user back to the referring page with an error message
-    #             referer = request.META.get('HTTP_REFERER', '/admin/')  # Default to admin index if referer is missing
-    #             messages.error(request, f"An error occurred: ")
-    #             return redirect(referer)
-    #             # print(help(self.find_JudgeAssignmentForm))
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
