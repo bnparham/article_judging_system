@@ -303,46 +303,60 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
         ).first()
             raise ValidationError(
-                f"تداخل زمانی رخ داده است. داور {conflict_session.conflict_field} در فیلد  "
-                f"در کلاس دیگری با شناسه {conflict_session.id} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی "
-                f"{conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+                f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) ."
             )
     def validate_professors_as_judges_db(self):
         session = self.instance  # Parent `Session` instance
-
+        # Combine all professors into a single queryable list
         professors = [
-                session.supervisor1,
-                session.supervisor2,
-                session.supervisor3,
-                session.supervisor4,
-                session.graduate_monitor,]
+            session.supervisor1,
+            session.supervisor2,
+            session.supervisor3,
+            session.supervisor4,
+            session.graduate_monitor,
+        ]
 
-        for professor in professors:
-            # Find all sessions where the judge is assigned on the same date and schedule
-            sessions_with_judge = Session.objects.filter(
-                date=session.date,  # Same date
-                schedule=session.schedule,  # Same schedule
-                judges__judge=professor  # Judge is assigned to the session
-            ).exclude(id=session.id)  # Exclude the current session if it's an update
+        # Step 1: Filter for conflicting sessions
+        conflicting_sessions = Session.objects.filter(
+            date=session.date,  # Same date
+            schedule=session.schedule,  # Same schedule
+            judges__judge__in=professors,  # Judge is one of the professors
+        ).exclude(id=session.id)  # Exclude the current session if it's an update
 
-            # Check for time conflicts
-            conflicting_sessions = sessions_with_judge.filter(
-                Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Time overlaps
-            )
+        # Step 2: Check for time conflicts
+        conflicting_sessions = conflicting_sessions.filter(
+            Q(start_time__lt=session.end_time, end_time__gt=session.start_time)  # Overlapping time
+        )
 
-            if conflicting_sessions.exists():
-                session = conflicting_sessions.first()
-                raise ValidationError(
-                    f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری به عنوان داور با شناسه ({session.id}) "
-                    f"در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+        # Step 3: If conflicts exist, annotate only the first result
+        if conflicting_sessions.exists():
+            conflict = conflicting_sessions.annotate(
+                conflict_professor=Case(
+                    When(judges__judge=session.supervisor1,
+                         then=Concat(F("judges__judge__first_name"), Value(" "), F("judges__judge__last_name"))),
+                    When(judges__judge=session.supervisor2,
+                         then=Concat(F("judges__judge__first_name"), Value(" "), F("judges__judge__last_name"))),
+                    When(judges__judge=session.supervisor3,
+                         then=Concat(F("judges__judge__first_name"), Value(" "), F("judges__judge__last_name"))),
+                    When(judges__judge=session.supervisor4,
+                         then=Concat(F("judges__judge__first_name"), Value(" "), F("judges__judge__last_name"))),
+                    When(judges__judge=session.graduate_monitor,
+                         then=Concat(F("judges__judge__first_name"), Value(" "), F("judges__judge__last_name"))),
+                    default=Value("Unknown"),
+                    output_field=CharField(),
                 )
+            ).first()
 
+            raise ValidationError(
+                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد {conflict.conflict_professor} به عنوان داور در کلاس دیگری با شناسه ({conflict.id}) "
+                f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+            )
     def validate_not_duplicate_judges_at_sameSession(self, judges):
         if len(judges) != len(set(judges)):
             raise ValidationError(
                 f"داوران در یک نشست نمیتوانند تکراری باشند"
             )
-
     def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
         # Validate against supervisors and graduate_monitor in the parent form
         parent_session = self.instance  # Parent `Session` instance

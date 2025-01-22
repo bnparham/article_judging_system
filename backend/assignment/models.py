@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Case, When, F, Value, CharField
+from django.db.models.functions import Concat
 from jalali_date import date2jalali
 
 
@@ -187,30 +188,44 @@ class Session(models.Model):
         if len(professors) != len(set(professors)):
             raise ValidationError("اساتید حاظر در اطلاعات برگزار کنندگان (استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) نمی‌توانند در یک نشست تکراری باشند.")
 
-        overlapping_sessions_2 = Session.objects.filter(
-            date=self.date,  # Same term/date
-            schedule=self.schedule,  # Same semester
-        ).exclude(id=self.id)  # Exclude the current session if it's an update
+        # Filter sessions with the same date and schedule, excluding the current session
+        overlapping_sessions = Session.objects.filter(
+            date=self.date,
+            schedule=self.schedule,
+        ).exclude(id=self.id)
 
-        # Loop through all professors and check for conflicts
-        for professor in professors:
-            conflicting_sessions = overlapping_sessions_2.filter(
-                (
-                        Q(supervisor1=professor) | Q(supervisor2=professor) |
-                        Q(supervisor3=professor) | Q(supervisor4=professor) |
-                        Q(graduate_monitor=professor)
-                )
-                & (
-                    Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
-                )
+        # Find all conflicting sessions with any of the given judges
+        conflicting_sessions = overlapping_sessions.filter(
+            (
+                    Q(supervisor1__in=professors) |
+                    Q(supervisor2__in=professors) |
+                    Q(supervisor3__in=professors) |
+                    Q(supervisor4__in=professors) |
+                    Q(graduate_monitor__in=professors)
             )
+            & Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+        )
 
-            if conflicting_sessions.exists():
-                session = conflicting_sessions.first()
-                raise ValidationError(
-                    f"تداخل زمانی رخ داده است. استاد {professor} در کلاس دیگری با شناسه ({session.id}) در تاریخ {session.get_date_jalali} و بازه زمانی {session.start_time} تا {session.end_time} حضور دارد."
+        # Check if any conflicts exist
+        if conflicting_sessions.exists():
+
+            conflict_session = conflicting_sessions.annotate(
+                conflict_professor=Case(
+                    When(supervisor1__in=professors, then=Concat(F('supervisor1__first_name'), Value(' '), F('supervisor1__last_name'))),
+                    When(supervisor2__in=professors, then=Concat(F('supervisor2__first_name'), Value(' '), F('supervisor2__last_name'))),
+                    When(supervisor3__in=professors, then=Concat(F('supervisor3__first_name'), Value(' '), F('supervisor3__last_name'))),
+                    When(supervisor4__in=professors, then=Concat(F('supervisor4__first_name'), Value(' '), F('supervisor4__last_name'))),
+                    When(graduate_monitor__in=professors,
+                         then=Concat(F('graduate_monitor__first_name'), Value(' '), F('graduate_monitor__last_name'))),
+                    default=Value(''),
+                    output_field=CharField(),
                 )
+            ).first()
 
+            raise ValidationError(
+                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+            )
 
     @property
     def get_date_jalali(self):
