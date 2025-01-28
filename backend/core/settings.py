@@ -88,31 +88,31 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # ====== DJANGO DEFAULT DB SETTINGS ======
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 # ====== DJANGO DEFAULT DB SETTINGS ======
 
 
 
-# if DEBUG:
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.postgresql',
-#             'NAME': os.getenv('ORIGIN_DB_NAME'),
-#             'USER': os.getenv('ORIGIN_DB_USER'),
-#             'PASSWORD': os.getenv('ORIGIN_DB_PASSWORD'),
-#             'HOST': os.getenv('ORIGIN_DB_HOST'),
-#             'PORT': os.getenv('ORIGIN_DB_PORT'),
-#         },
-#     }
-# else:
-#     DATABASES = {
-#         'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
-#     }
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('ORIGIN_DB_NAME'),
+            'USER': os.getenv('ORIGIN_DB_USER'),
+            'PASSWORD': os.getenv('ORIGIN_DB_PASSWORD'),
+            'HOST': os.getenv('ORIGIN_DB_HOST'),
+            'PORT': os.getenv('ORIGIN_DB_PORT'),
+        },
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    }
 
 
 
