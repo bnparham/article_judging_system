@@ -262,9 +262,60 @@ Branching is a powerful feature in Git that allows you to isolate your work and 
 
 ### Best Practices
 
-1.  **Keep Branches Small and Focused**: Each branch should have a single purpose.
-2.  **Commit Often**: Regular commits help in tracking progress and easing potential conflict resolution.
-3.  **Regularly Sync with Base Branch**: Frequently update your branch with changes from the base branch to minimize conflicts.
-4.  **Use Meaningful Names**: Branch names should clearly convey the purpose of the branch.
-5.  **Review Before Merging**: Use pull requests for code reviews to ensure code quality and team collaboration.
-6.  **Test Thoroughly**: Ensure all tests pass before merging.
+1. **Keep Branches Small and Focused**: Each branch should have a single purpose.
+2. **Commit Often**: Regular commits help in tracking progress and easing potential conflict resolution.
+3. **Regularly Sync with Base Branch**: Frequently update your branch with changes from the base branch to minimize conflicts.
+4. **Use Meaningful Names**: Branch names should clearly convey the purpose of the branch.
+5. **Review Before Merging**: Use pull requests for code reviews to ensure code quality and team collaboration.
+6. **Test Thoroughly**: Ensure all tests pass before merging.
+
+# Postgres Database Issues Help Commands
+
+### Drop the Database
+Run the `DROP DATABASE` command for the database you want to remove. Replace `originDB` with the database name.
+```sql
+DROP DATABASE database_name;
+```
+If the database name contains uppercase letters, wrap it in double quotes when referencing.
+example :
+```sql
+DROP DATABASE "originDB";
+```
+
+### switch to another database
+```sql
+\c postgres
+```
+### List the databases
+```sql
+\l
+```
+
+### Recreate the Database
+```sql
+CREATE DATABASE "originDB" OWNER "admin@admin";
+```
+### Check `settings.py`
+Ensure your Django settings point to the correct database. Look for the `DATABASES` setting in your `settings.py` file
+```python
+if DEBUG:  
+    DATABASES = {  
+        'default': {  
+            'ENGINE': 'django.db.backends.postgresql',  
+  'NAME': os.getenv('ORIGIN_DB_NAME'),  
+  'USER': os.getenv('ORIGIN_DB_USER'),  
+  'PASSWORD': os.getenv('ORIGIN_DB_PASSWORD'),  
+  'HOST': os.getenv('ORIGIN_DB_HOST'),  
+  'PORT': os.getenv('ORIGIN_DB_PORT'),  
+  },  
+  }  
+else:  
+    DATABASES = {  
+        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))  
+    }
+```
+### Run Migrations
+Once the database is recreated, you need to apply migrations to set up the schema for your Django project
+```python
+python manage.py migrate
+```
