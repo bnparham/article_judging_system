@@ -369,17 +369,17 @@ class SessionAdminForm(forms.ModelForm):
             'end_time': TimePickerInput,  # Time picker
         }
 
-    def clean(self):
-        cleaned_data = super(SessionAdminForm, self).clean()
-        try:
-            # Call the model's clean method
-            self.instance.clean()
-        except ValidationError as e:
-            # Raise form-level validation errors
-            messages.error(self.request, e.message)
-            raise forms.ValidationError(e.messages)
-
-        return cleaned_data
+    # def clean(self):
+    #     cleaned_data = super(SessionAdminForm, self).clean()
+    #     try:
+    #         # Call the model's clean method
+    #         self.instance.clean()
+    #     except ValidationError as e:
+    #         # Raise form-level validation errors
+    #         messages.error(self.request, e.message)
+    #         raise forms.ValidationError(e.messages)
+    #
+    #     return cleaned_data
 
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):

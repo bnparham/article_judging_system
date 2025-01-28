@@ -232,7 +232,7 @@ class StudentAdmin(admin.ModelAdmin):
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_student(self, obj):
-        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
+        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/account/student/{obj.id}/change/")
     edit_student.short_description = "اطلاعات کامل دانشجو"
 
 
@@ -278,7 +278,7 @@ class TeacherAdmin(admin.ModelAdmin):
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_teacher(self, obj):
-        return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/account/teacher/{obj.id}/change/")
+        return format_html('<a href="{}">ویرایش استاد</a>', f"/account/teacher/{obj.id}/change/")
     edit_teacher.short_description = "ورود به پنل ویرایش استاد"
 
     def get_list_display_links(self, request, list_display):
