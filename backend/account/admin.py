@@ -28,11 +28,6 @@ class MonthFilter(ModelAdminJalaliMixin, admin.SimpleListFilter):
             ('12', _('اسفند')),
         )
 
-    # def queryset(self, request, queryset):
-    #     if self.value():
-    #         if(hasattr(queryset.model, 'last_login')):
-    #             last_login_dates = queryset.values_list('last_login', flat=True)
-    #             return queryset.filter(last_login__month=self.value())
     def queryset(self, request, queryset):
         if self.value():
             try:

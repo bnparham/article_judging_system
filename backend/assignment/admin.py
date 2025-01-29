@@ -22,57 +22,45 @@ from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 from schedule.models import Schedule
 
 
-class MonthFilter(admin.SimpleListFilter):
-    title = _('بر اساس زمانبدی نشست')
-    parameter_name = 'month'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('1', _('دی')),
-            ('2', _('بهمن')),
-            ('3', _('اسفند')),
-            ('4', _('فروردین')),
-            ('5', _('اردیبهشت')),
-            ('6', _('خرداد')),
-            ('7', _('تیر')),
-            ('8', _('مرداد')),
-            ('9', _('شهریور')),
-            ('10', _('مهر')),
-            ('11', _('آبان')),
-            ('12', _('آذر')),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value():
-            if (hasattr(queryset.model, 'schedule')):
-                return queryset.filter(schedule__date__month=self.value())
-
-
 class MonthFilter_created_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ایجاد شده ')
     parameter_name = 'month_created_at'
 
     def lookups(self, request, model_admin):
         return (
-            ('1', _('دی')),
-            ('2', _('بهمن')),
-            ('3', _('اسفند')),
-            ('4', _('فروردین')),
-            ('5', _('اردیبهشت')),
-            ('6', _('خرداد')),
-            ('7', _('تیر')),
-            ('8', _('مرداد')),
-            ('9', _('شهریور')),
-            ('10', _('مهر')),
-            ('11', _('آبان')),
-            ('12', _('آذر')),
+            ('1', _('فروردین')),
+            ('2', _('اردیبهشت')),
+            ('3', _('خرداد')),
+            ('4', _('تیر')),
+            ('5', _('مرداد')),
+            ('6', _('شهریور')),
+            ('7', _('مهر')),
+            ('8', _('آبان')),
+            ('9', _('آذر')),
+            ('10', _('دی')),
+            ('11', _('بهمن')),
+            ('12', _('اسفند')),
         )
 
     def queryset(self, request, queryset):
         if self.value():
-            if (hasattr(queryset.model, 'created_at')):
-                return queryset.filter(created_at__month=self.value())
+            try:
+                jalali_month = int(self.value())  # Convert string to integer
+            except ValueError:
+                return queryset  # If invalid input, return unfiltered queryset
 
+            # Get only required fields from DB (optimization)
+            created_at_dates = queryset.values_list('id', 'created_at')
+
+            # Filter using datetime2jalali without looping over queryset directly
+            matching_ids = [
+                id for id, created_at in created_at_dates
+                if created_at and datetime2jalali(created_at).month == jalali_month
+            ]
+
+            return queryset.filter(id__in=matching_ids)  # Filter efficiently
+
+        return queryset  # If no filter is applied, return the original queryset
 
 class MonthFilter_updated_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ویرایش شده')
@@ -80,25 +68,39 @@ class MonthFilter_updated_at(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return (
-            ('1', _('دی')),
-            ('2', _('بهمن')),
-            ('3', _('اسفند')),
-            ('4', _('فروردین')),
-            ('5', _('اردیبهشت')),
-            ('6', _('خرداد')),
-            ('7', _('تیر')),
-            ('8', _('مرداد')),
-            ('9', _('شهریور')),
-            ('10', _('مهر')),
-            ('11', _('آبان')),
-            ('12', _('آذر')),
+            ('1', _('فروردین')),
+            ('2', _('اردیبهشت')),
+            ('3', _('خرداد')),
+            ('4', _('تیر')),
+            ('5', _('مرداد')),
+            ('6', _('شهریور')),
+            ('7', _('مهر')),
+            ('8', _('آبان')),
+            ('9', _('آذر')),
+            ('10', _('دی')),
+            ('11', _('بهمن')),
+            ('12', _('اسفند')),
         )
 
     def queryset(self, request, queryset):
         if self.value():
-            if (hasattr(queryset.model, 'updated_at')):
-                return queryset.filter(updated_at__month=self.value())
+            try:
+                jalali_month = int(self.value())  # Convert string to integer
+            except ValueError:
+                return queryset  # If invalid input, return unfiltered queryset
 
+            # Get only required fields from DB (optimization)
+            updated_at_dates = queryset.values_list('id', 'updated_at')
+
+            # Filter using datetime2jalali without looping over queryset directly
+            matching_ids = [
+                id for id, updated_at in updated_at_dates
+                if updated_at and datetime2jalali(updated_at).month == jalali_month
+            ]
+
+            return queryset.filter(id__in=matching_ids)  # Filter efficiently
+
+        return queryset  # If no filter is applied, return the original queryset
 
 class SupervisorCountFilter(admin.SimpleListFilter):
     title = _('تعداد استاد راهنما')
@@ -405,7 +407,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                      'id')
 
     # Filters to narrow down results in the list view
-    list_filter = ('session_status', 'is_active', MonthFilter, MonthFilter_created_at,
+    list_filter = ('session_status', 'is_active', MonthFilter_created_at,
                    MonthFilter_updated_at,
                    SupervisorCountFilter,
                    Consultant_ProfessorCountFilter,
