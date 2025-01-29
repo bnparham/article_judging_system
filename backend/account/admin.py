@@ -2,37 +2,56 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from jalali_date import datetime2jalali
+from jalali_date.admin import ModelAdminJalaliMixin
+
 from .models import User, EducationalGroup, Student, Teacher
 from django.utils.translation import gettext_lazy as _
+import jdatetime
 
-class MonthFilter(admin.SimpleListFilter):
-    title = _('ماه')
+class MonthFilter(ModelAdminJalaliMixin, admin.SimpleListFilter):
+    title = _('آخرین ورود به سیستم')
     parameter_name = 'month'
 
     def lookups(self, request, model_admin):
         return (
-            ('1', _('دی')),
-            ('2', _('بهمن')),
-            ('3', _('اسفند')),
-            ('4', _('فروردین')),
-            ('5', _('اردیبهشت')),
-            ('6', _('خرداد')),
-            ('7', _('تیر')),
-            ('8', _('مرداد')),
-            ('9', _('شهریور')),
-            ('10', _('مهر')),
-            ('11', _('آبان')),
-            ('12', _('آذر')),
+            ('1', _('فروردین')),
+            ('2', _('اردیبهشت')),
+            ('3', _('خرداد')),
+            ('4', _('تیر')),
+            ('5', _('مرداد')),
+            ('6', _('شهریور')),
+            ('7', _('مهر')),
+            ('8', _('آبان')),
+            ('9', _('آذر')),
+            ('10', _('دی')),
+            ('11', _('بهمن')),
+            ('12', _('اسفند')),
         )
 
+    # def queryset(self, request, queryset):
+    #     if self.value():
+    #         if(hasattr(queryset.model, 'last_login')):
+    #             last_login_dates = queryset.values_list('last_login', flat=True)
+    #             return queryset.filter(last_login__month=self.value())
     def queryset(self, request, queryset):
         if self.value():
-            if(hasattr(queryset.model, 'date_joined')):
-                return queryset.filter(date_joined__month=self.value())
-            elif(hasattr(queryset.model, 'expiry_date')):
-                return queryset.filter(expiry_date__month=self.value())
-            elif(hasattr(queryset.model, 'start_date')):
-                return queryset.filter(start_date__month=self.value())
+            try:
+                jalali_month = int(self.value())  # Convert string to integer
+            except ValueError:
+                return queryset  # If invalid input, return unfiltered queryset
+
+            # Get only required fields from DB (optimization)
+            last_login_dates = queryset.values_list('uuid', 'last_login')
+
+            # Filter using datetime2jalali without looping over queryset directly
+            matching_ids = [
+                uuid for uuid, last_login in last_login_dates
+                if last_login and datetime2jalali(last_login).month == jalali_month
+            ]
+
+            return queryset.filter(uuid__in=matching_ids)  # Filter efficiently
+
+        return queryset  # If no filter is applied, return the original queryset
 
 
 @admin.register(User)

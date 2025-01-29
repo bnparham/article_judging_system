@@ -147,9 +147,9 @@ USE_I18N = True
 USE_TZ = True
 
 # IF Windows
-locale.setlocale(locale.LC_ALL, "Persian_Iran.UTF-8")
+# locale.setlocale(locale.LC_ALL, "Persian_Iran.UTF-8")
 # IF Other OS
-# locale.setlocale(locale.LC_ALL, "fa_IR.UTF-8")
+locale.setlocale(locale.LC_ALL, "fa_IR.UTF-8")
 
 
 # Static files (CSS, JavaScript, Images)
