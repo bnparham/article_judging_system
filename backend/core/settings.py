@@ -42,12 +42,12 @@ INSTALLED_APPS = [
     # === installed apps ===
     'account.apps.AccountConfig',
     'schedule.apps.ScheduleConfig',
+    'assignment.apps.AssignmentConfig',
+    'university_adminstration.apps.UniversityAdminstrationConfig',
     # === third party modules ===
     'rest_framework',
     'jalali_date',
     'django_flatpickr',
-    'assignment',
-
 ]
 
 MIDDLEWARE = [

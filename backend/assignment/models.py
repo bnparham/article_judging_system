@@ -55,7 +55,7 @@ class Session(models.Model):
     )
 
     student = models.ForeignKey(
-        'account.Student',
+        'university_adminstration.Student',
         on_delete=models.CASCADE,
         related_name="student_assignments",
         verbose_name="دانشجو",
@@ -63,7 +63,7 @@ class Session(models.Model):
     )
 
     supervisor1 = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         related_name="supervisor1_assignments",
         verbose_name="استاد راهنما اول",
@@ -71,7 +71,7 @@ class Session(models.Model):
     )
 
     supervisor2 = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         related_name="supervisor2_assignments",
         verbose_name="استاد راهنما دوم",
@@ -81,7 +81,7 @@ class Session(models.Model):
     )
 
     supervisor3 = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         related_name="supervisor3_assignments",
         verbose_name="استاد مشاور اول",
@@ -91,7 +91,7 @@ class Session(models.Model):
     )
 
     supervisor4 = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         related_name="supervisor4_assignments",
         verbose_name="استاد مشاور دوم",
@@ -101,7 +101,7 @@ class Session(models.Model):
     )
 
     graduate_monitor = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         related_name="graduate_monitor_assignments",
         verbose_name="ناظر تحصیلات تکمیلی",
@@ -266,7 +266,7 @@ class JudgeAssignment(models.Model):
         help_text="نشستی که این داور به آن تخصیص داده می‌شود"
     )
     judge = models.ForeignKey(
-        'account.Teacher',
+        'university_adminstration.Teacher',
         on_delete=models.CASCADE,
         verbose_name="داور",
         help_text="داور تخصیص داده شده"
