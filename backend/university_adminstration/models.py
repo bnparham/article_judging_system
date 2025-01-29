@@ -24,8 +24,6 @@ class EducationalGroup(models.Model):
         choices=ROLE_CHOICES_DICT,
         verbose_name='گروه ارشد | دکتری'
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
     def __str__(self):
         return f" گروه {self.FIELD_OF_STUDY_CHOICES_DICT[self.field_of_study]} - {self.ROLE_CHOICES_DICT[self.role]}"
