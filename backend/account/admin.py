@@ -203,7 +203,7 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'email', 'phone_number', 'student_number', 'role',
+    list_display = ('user_full_name', 'student_number', 'email', 'phone_number', 'role',
                     'educational_group', 'admission_year', 'gender',
                     'edit_student')
     search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
