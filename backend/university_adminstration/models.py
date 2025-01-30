@@ -29,8 +29,8 @@ class EducationalGroup(models.Model):
         return f" گروه {self.FIELD_OF_STUDY_CHOICES_DICT[self.field_of_study]} - {self.ROLE_CHOICES_DICT[self.role]}"
 
     class Meta:
-        verbose_name = "گروه های آموزشی"
-        verbose_name_plural = "گروه های آموزشی تعریف شده در دانشکده"
+        verbose_name = "گروه آموزشی"
+        verbose_name_plural = "گروه های آموزشی"
         constraints = [
             models.UniqueConstraint(fields=['field_of_study', 'role'], name='unique_field_role',)]
 

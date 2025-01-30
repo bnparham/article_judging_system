@@ -637,9 +637,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                     session.end_time,
                     session.student.name,
                     session.supervisor1.name,
-                    session.supervisor2.name,
-                    session.supervisor3.name,
-                    session.supervisor4.name,
+                    session.supervisor2.name if session.supervisor2 else None,
+                    session.supervisor3.name if session.supervisor3 else None,
+                    session.supervisor4.name if session.supervisor4 else None,
                     session.graduate_monitor.name,
                     # Get the names of all judges assigned to this session
                     ", ".join(judge_assignment.judge.name for judge_assignment in session.judges.all())
