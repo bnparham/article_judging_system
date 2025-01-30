@@ -582,6 +582,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     #           'js/admin_assignment_session/filter_judges.js',)
 
     # Add a custom URL to the admin panel
+    change_form_template = 'assignment/admin/change_form.html'
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
