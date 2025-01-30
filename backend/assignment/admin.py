@@ -409,15 +409,130 @@ class SessionAdminForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(SessionAdminForm, self).clean()
-        try:
-            # Call the model's clean method
-            self.instance.clean()
-        except ValidationError as e:
-            # Raise form-level validation errors
-            messages.error(self.request, e.message)
-            raise forms.ValidationError(e.messages)
+        self.id = cleaned_data.get('id')
+        self.start_time = cleaned_data.get('start_time')
+        self.end_time = cleaned_data.get('end_time')
+        self.date = cleaned_data.get('date')
+        self.schedule = cleaned_data.get('schedule')
+        self.student = cleaned_data.get('student')
+        self.supervisor1 = cleaned_data.get('supervisor1')
+        self.supervisor2 = cleaned_data.get('supervisor2')
+        self.supervisor3 = cleaned_data.get('supervisor3')
+        self.supervisor4 = cleaned_data.get('supervisor4')
+        self.graduate_monitor = cleaned_data.get('graduate_monitor')
+        self.class_number = cleaned_data.get('class_number')
 
-        return cleaned_data
+        self.validate_empty_fields()
+
+        if self.start_time >= self.end_time:
+            messages.error(self.request, "خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
+            raise forms.ValidationError(f'')
+
+        # Filter sessions with the same date and schedule, excluding the current session
+        overlapping_sessions = Session.objects.filter(
+            date=self.date,
+            schedule=self.schedule,
+        ).exclude(id=self.id)
+
+        # validate overlaping sessions
+        self.validate_overlapingSessions()
+
+        # Validate professors (supervisors and graduate monitor)
+        roles = [
+            self.supervisor1, self.supervisor2, self.supervisor3, self.supervisor4,
+            self.graduate_monitor
+        ]
+        self.validate_professors(roles, overlapping_sessions)
+
+        self.valiadte_students(overlapping_sessions)
+
+    def validate_empty_fields(self):
+        if self.start_time == None or self.end_time == None or self.student == None\
+                or self.class_number == None or self.supervisor1 == None or self.graduate_monitor == None:
+            raise ValidationError(f'')
+
+    def valiadte_students(self, overlapping_sessions):
+        # Find all conflicting sessions with any of the given student
+        conflicting_sessions = overlapping_sessions.filter(
+            (
+                    Q(student=self.student)
+            )
+            & Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+        )
+        if conflicting_sessions.exists():
+            conflict_session = conflicting_sessions.first()
+            messages.error(self.request,
+                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. دانشجو ({conflict_session.student}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد.")
+            raise forms.ValidationError(f'')
+
+    def validate_overlapingSessions(self):
+        # Check for time conflicts in the same term (date) and schedule and class_number
+        overlapping_sessions = Session.objects.filter(
+            date=self.date,  # Same term/date
+            schedule=self.schedule,  # Same semester
+            class_number=self.class_number,  #Same class
+        ).exclude(id=self.id)  # Exclude the current session if it's an update
+
+        # Check if the start and end times of the current session overlap with any existing session
+        for session in overlapping_sessions:
+            # Time overlap condition:
+            # 1. The current session starts during another session.
+            # 2. The current session ends during another session.
+            # 3. The current session completely spans another session.
+            if (
+                    (self.start_time >= session.start_time and self.start_time < session.end_time) or
+                    (self.end_time > session.start_time and self.end_time <= session.end_time) or
+                    (self.start_time <= session.start_time and self.end_time >= session.end_time)
+            ):
+                messages.error(self.request, f"این نشست تداخل زمانی دارد با نشست دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} در بازه زمانی {session.start_time} - {session.end_time} ")
+                raise forms.ValidationError(f"")
+
+    def validate_professors(self, roles, overlapping_sessions):
+        # Remove any None values (empty fields)
+        professors = [prof for prof in roles if prof is not None]
+
+        # Check for duplicates
+        if len(professors) != len(set(professors)):
+            messages.error(self.request,
+                           "اساتید حاظر در اطلاعات برگزار کنندگان (استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی) نمی‌توانند در یک نشست تکراری باشند."
+                           )
+            raise forms.ValidationError(f"")
+
+
+        # Find all conflicting sessions with any of the given professors
+        conflicting_sessions = overlapping_sessions.filter(
+            (
+                    Q(supervisor1__in=professors) |
+                    Q(supervisor2__in=professors) |
+                    Q(supervisor3__in=professors) |
+                    Q(supervisor4__in=professors) |
+                    Q(graduate_monitor__in=professors)
+            )
+            & Q(start_time__lt=self.end_time, end_time__gt=self.start_time)  # Time overlaps
+        )
+
+        # Check if any conflicts exist
+        if conflicting_sessions.exists():
+
+            conflict_session = conflicting_sessions.annotate(
+                conflict_professor=Case(
+                    When(supervisor1__in=professors, then=Concat(F('supervisor1__first_name'), Value(' '), F('supervisor1__last_name'))),
+                    When(supervisor2__in=professors, then=Concat(F('supervisor2__first_name'), Value(' '), F('supervisor2__last_name'))),
+                    When(supervisor3__in=professors, then=Concat(F('supervisor3__first_name'), Value(' '), F('supervisor3__last_name'))),
+                    When(supervisor4__in=professors, then=Concat(F('supervisor4__first_name'), Value(' '), F('supervisor4__last_name'))),
+                    When(graduate_monitor__in=professors,
+                         then=Concat(F('graduate_monitor__first_name'), Value(' '), F('graduate_monitor__last_name'))),
+                    default=Value(''),
+                    output_field=CharField(),
+                )
+            ).first()
+
+            messages.error(self.request,
+                           f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                           f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+            )
+            raise forms.ValidationError(f'')
 
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
@@ -582,7 +697,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                             'description': _("""
                                 ✅
                     نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
-                    در غیر این صورت با پیغام خطا مواجه خواهید شد               
+                    در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                                 """)
                         }),
                         (_('اطلاعات دانشجو'), {
@@ -625,7 +740,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                             'description': _("""
                         ✅
             نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
-            در غیر این صورت با پیغام خطا مواجه خواهید شد               
+            در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                         """)
                         }),
                         (_('اطلاعات دانشجو'), {
