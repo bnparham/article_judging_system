@@ -1,38 +1,49 @@
 from django.contrib import admin
-from django.core.exceptions import ValidationError
-from django.utils.html import format_html
 from jalali_date import datetime2jalali
-from .models import User, EducationalGroup, Student, Teacher
+from jalali_date.admin import ModelAdminJalaliMixin
+
+from .models import User
 from django.utils.translation import gettext_lazy as _
 
-class MonthFilter(admin.SimpleListFilter):
-    title = _('ماه')
+class MonthFilter(ModelAdminJalaliMixin, admin.SimpleListFilter):
+    title = _('آخرین ورود به سیستم')
     parameter_name = 'month'
 
     def lookups(self, request, model_admin):
         return (
-            ('1', _('دی')),
-            ('2', _('بهمن')),
-            ('3', _('اسفند')),
-            ('4', _('فروردین')),
-            ('5', _('اردیبهشت')),
-            ('6', _('خرداد')),
-            ('7', _('تیر')),
-            ('8', _('مرداد')),
-            ('9', _('شهریور')),
-            ('10', _('مهر')),
-            ('11', _('آبان')),
-            ('12', _('آذر')),
+            ('1', _('فروردین')),
+            ('2', _('اردیبهشت')),
+            ('3', _('خرداد')),
+            ('4', _('تیر')),
+            ('5', _('مرداد')),
+            ('6', _('شهریور')),
+            ('7', _('مهر')),
+            ('8', _('آبان')),
+            ('9', _('آذر')),
+            ('10', _('دی')),
+            ('11', _('بهمن')),
+            ('12', _('اسفند')),
         )
 
     def queryset(self, request, queryset):
         if self.value():
-            if(hasattr(queryset.model, 'date_joined')):
-                return queryset.filter(date_joined__month=self.value())
-            elif(hasattr(queryset.model, 'expiry_date')):
-                return queryset.filter(expiry_date__month=self.value())
-            elif(hasattr(queryset.model, 'start_date')):
-                return queryset.filter(start_date__month=self.value())
+            try:
+                jalali_month = int(self.value())  # Convert string to integer
+            except ValueError:
+                return queryset  # If invalid input, return unfiltered queryset
+
+            # Get only required fields from DB (optimization)
+            last_login_dates = queryset.values_list('uuid', 'last_login')
+
+            # Filter using datetime2jalali without looping over queryset directly
+            matching_ids = [
+                uuid for uuid, last_login in last_login_dates
+                if last_login and datetime2jalali(last_login).month == jalali_month
+            ]
+
+            return queryset.filter(uuid__in=matching_ids)  # Filter efficiently
+
+        return queryset  # If no filter is applied, return the original queryset
 
 
 @admin.register(User)
@@ -163,146 +174,5 @@ class UserAdmin(admin.ModelAdmin):
     def get_last_password_reset_jalali(self, obj):
         if obj.last_password_reset:
             return datetime2jalali(obj.last_password_reset).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-
-
-@admin.register(EducationalGroup)
-class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'field_of_study', 'role',
-                    'get_created_at_jalali', 'get_updated_at_jalali')
-    search_fields = ('name', 'field_of_study', 'role')
-    list_filter = ('field_of_study', 'role', 'created_at', 'updated_at')
-    ordering = ('name',)
-
-    # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
-
-    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
-    def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
-    def get_updated_at_jalali(self, obj):
-        if obj.updated_at:
-            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
-@admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'email', 'phone_number', 'student_number', 'role',
-                    'educational_group', 'admission_year', 'gender',
-                    'edit_student')
-    search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
-    list_filter = ('role', 'status', 'educational_group', 'military_status', 'program_type', 'gender')
-    ordering = ('student_number',)
-
-    # Read-only fields in the form view
-    readonly_fields = (
-        'first_name', 'last_name', 'email', 'phone_number',
-        'student_number', 'educational_group', 'role',
-        'admission_year', 'gender', 'military_status', 'program_type',
-        'get_created_at_jalali',
-        'get_updated_at_jalali'
-    )
-
-    def has_add_permission(self, request, obj=None):
-        return False  # Always return False to disable adding new objects
-
-    # Prevent deleting objects in the admin panel
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
-    def user_full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}"
-    user_full_name.short_description = "نام و نام خانوادگی"
-
-    def edit_student(self, obj):
-        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/account/student/{obj.id}/change/")
-    edit_student.short_description = "اطلاعات کامل دانشجو"
-
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
-    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
-    def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
-    def get_updated_at_jalali(self, obj):
-        if obj.updated_at:
-            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    def get_list_display_links(self, request, list_display):
-        # Remove links from all columns
-        return ('edit_student')  # Keep the link only on `edit_teacher`
-
-@admin.register(Teacher)
-class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'national_code',
-                    'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
-    search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')
-    list_filter = ('created_at', 'updated_at')
-    ordering = ('first_name', 'last_name')
-
-    # Read-only fields in the form view
-    readonly_fields = ['get_created_at_jalali',
-                       'get_updated_at_jalali']
-
-    def user_full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}"
-    user_full_name.short_description = "نام و نام خانوادگی"
-
-    def edit_teacher(self, obj):
-        return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/account/teacher/{obj.id}/change/")
-    edit_teacher.short_description = "ورود به پنل ویرایش استاد"
-
-    def get_list_display_links(self, request, list_display):
-        # Remove links from all columns
-        return ('edit_teacher')  # Keep the link only on `edit_teacher`
-
-    def get_readonly_fields(self, request, obj=None):
-        # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
-            # Return an empty list of readonly fields in the Add view
-            return []
-        return self.readonly_fields
-
-
-    @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')
-    def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return datetime2jalali(obj.created_at).strftime('%a, %d %b %Y | %H:%M:%S')
-        else:
-            return "ثبت نشده است"
-
-    @admin.display(description='آخرین ویرایش در زمان/تاریخ', ordering='updated_at')
-    def get_updated_at_jalali(self, obj):
-        if obj.updated_at:
-            return datetime2jalali(obj.updated_at).strftime('%a, %d %b %Y | %H:%M:%S')
         else:
             return "ثبت نشده است"
