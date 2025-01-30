@@ -206,7 +206,7 @@ class Session(models.Model):
                     (self.start_time <= session.start_time and self.end_time >= session.end_time)
             ):
                 raise ValidationError(
-                    f"کلاس با شناسه {self.id} تداخل زمانی دارد با نشست دیگری ({session.start_time} - {session.end_time}) در {self.get_date_jalali}."
+                    f"این نشست تداخل زمانی دارد با نشست دیگری با شناسه {session.id} در تاریخ {session.get_date_jalali} در بازه زمانی {session.start_time} - {session.end_time} "
                 )
 
 

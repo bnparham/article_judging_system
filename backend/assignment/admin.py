@@ -246,7 +246,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                f'❌ برای ادامه لطفا ارور های ایجاد شده را رفع کنید'
+                f''
             )
 
     def validate_judges_as_professors_db(self, judges):
@@ -295,7 +295,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                f'❌ {e}'
+                f''
             )
 
     def validate_professors_as_judges_db(self):
@@ -345,7 +345,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                f'❌ {e}'
+                f''
             )
 
     def validate_not_duplicate_judges_at_sameSession(self, judges):
@@ -355,7 +355,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                f'❌ {e}'
+                f''
             )
 
     def validate_not_duplicate_professors_and_judges_atSameSession(self, judges):
@@ -374,7 +374,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 e = (f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
                 messages.error(self.request, f"خطا : {e}")
                 raise ValidationError(
-                    f'❌ {e}'
+                    f''
                 )
 
 
@@ -407,17 +407,17 @@ class SessionAdminForm(forms.ModelForm):
             'end_time': TimePickerInput,  # Time picker
         }
 
-    # def clean(self):
-    #     cleaned_data = super(SessionAdminForm, self).clean()
-    #     try:
-    #         # Call the model's clean method
-    #         self.instance.clean()
-    #     except ValidationError as e:
-    #         # Raise form-level validation errors
-    #         messages.error(self.request, e.message)
-    #         raise forms.ValidationError(e.messages)
-    #
-    #     return cleaned_data
+    def clean(self):
+        cleaned_data = super(SessionAdminForm, self).clean()
+        try:
+            # Call the model's clean method
+            self.instance.clean()
+        except ValidationError as e:
+            # Raise form-level validation errors
+            messages.error(self.request, e.message)
+            raise forms.ValidationError(e.messages)
+
+        return cleaned_data
 
 
 class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
