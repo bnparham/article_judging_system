@@ -141,7 +141,10 @@ class Session(models.Model):
             models.UniqueConstraint(fields=['schedule', 'date', 'class_number', 'start_time', 'end_time'],
                                     name='unique_session',)]
 
+
     def clean(self):
+        self.validate_empty_fields()
+
         if self.start_time >= self.end_time:
             raise ValidationError("خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
 
@@ -162,6 +165,11 @@ class Session(models.Model):
         self.validate_professors(roles, overlapping_sessions)
 
         self.valiadte_students(overlapping_sessions)
+
+    def validate_empty_fields(self):
+        if self.start_time == None or self.end_time == None or self.student_id == None\
+                or self.class_number == None or self.supervisor1_id == None or self.graduate_monitor_id == None:
+            raise ValidationError(f'')
 
     def valiadte_students(self, overlapping_sessions):
         # Find all conflicting sessions with any of the given student

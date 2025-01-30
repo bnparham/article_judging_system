@@ -62,6 +62,7 @@ class MonthFilter_created_at(admin.SimpleListFilter):
 
         return queryset  # If no filter is applied, return the original queryset
 
+
 class MonthFilter_updated_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ویرایش شده')
     parameter_name = 'month_updated_at'
@@ -101,6 +102,7 @@ class MonthFilter_updated_at(admin.SimpleListFilter):
             return queryset.filter(id__in=matching_ids)  # Filter efficiently
 
         return queryset  # If no filter is applied, return the original queryset
+
 
 class SupervisorCountFilter(admin.SimpleListFilter):
     title = _('تعداد استاد راهنما')
@@ -190,6 +192,38 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
 
     def validate_judges(self, judges):
         session = self.instance
+        # === check None Fields ! ===
+        found_error = False
+        errors = []
+        if session.schedule_id == None:
+            found_error = True
+            errors.append("❌مقدار زمانبندی لازم است")
+        if session.date == None:
+            found_error = True
+            errors.append("❌مقدار تاریخ لازم است")
+        if session.start_time == None:
+            found_error = True
+            errors.append("❌مقدار ساعت شروع لازم است")
+        if session.end_time == None:
+            errors.append("❌مقدار زمان پایان لازم است")
+        if session.student_id == None:
+            found_error = True
+            errors.append("❌مقدار دانشجو لازم است")
+        if session.supervisor1_id == None:
+            found_error = True
+            errors.append("❌مقدار استاد مشاور اول لازم است")
+        if session.graduate_monitor_id == None:
+            found_error = True
+            errors.append("❌مقدار ناظر تحصیلات تکمیلی لازم است")
+        if session.class_number == None:
+            found_error = True
+            errors.append("❌لطفا شماره کلاس را انتخاب کنید")
+
+        if found_error:
+            messages.error(self.request, " | ".join(errors))
+            raise ValidationError(
+                f''
+            )
         # Find all sessions where the judge is assigned on the same date and schedule
         sessions_with_judge = Session.objects.filter(
             date=session.date,  # Same date
@@ -212,7 +246,7 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
-                f'❌ {e}'
+                f'❌ برای ادامه لطفا ارور های ایجاد شده را رفع کنید'
             )
 
     def validate_judges_as_professors_db(self, judges):
@@ -329,11 +363,13 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         parent_session = self.instance  # Parent `Session` instance
         for judge in judges:
             if judge in [
-                parent_session.supervisor1,
-                parent_session.supervisor2,
-                parent_session.supervisor3,
-                parent_session.supervisor4,
-                parent_session.graduate_monitor,
+                v for v in [
+                    parent_session.supervisor1,
+                    parent_session.supervisor2,
+                    parent_session.supervisor3,
+                    parent_session.supervisor4,
+                    parent_session.graduate_monitor]
+                if v != None
             ]:
                 e = (f"داور {judge} نمی‌تواند یکی از اساتید یا ناظر در همین نشست باشد.")
                 messages.error(self.request, f"خطا : {e}")
