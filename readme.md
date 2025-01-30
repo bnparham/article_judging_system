@@ -286,6 +286,12 @@ DROP DATABASE "originDB";
 ```sql
 \c postgres
 ```
+
+### login 
+```sql
+psql -U "admin@admin" -d postgres
+```
+
 ### List the databases
 ```sql
 \l
