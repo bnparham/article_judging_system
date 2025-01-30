@@ -409,7 +409,7 @@ class SessionAdminForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(SessionAdminForm, self).clean()
-        self.id = cleaned_data.get('id')
+        self.sessionID = self.instance.id
         self.start_time = cleaned_data.get('start_time')
         self.end_time = cleaned_data.get('end_time')
         self.date = cleaned_data.get('date')
@@ -432,7 +432,7 @@ class SessionAdminForm(forms.ModelForm):
         overlapping_sessions = Session.objects.filter(
             date=self.date,
             schedule=self.schedule,
-        ).exclude(id=self.id)
+        ).exclude(id=self.sessionID)
 
         # validate overlaping sessions
         self.validate_overlapingSessions()
@@ -472,7 +472,7 @@ class SessionAdminForm(forms.ModelForm):
             date=self.date,  # Same term/date
             schedule=self.schedule,  # Same semester
             class_number=self.class_number,  #Same class
-        ).exclude(id=self.id)  # Exclude the current session if it's an update
+        ).exclude(id=self.sessionID)  # Exclude the current session if it's an update
 
         # Check if the start and end times of the current session overlap with any existing session
         for session in overlapping_sessions:
