@@ -102,12 +102,7 @@ class User(AbstractUser):
         verbose_name_plural = _("لیست کاربران")
 
     def __str__(self):
-        if hasattr(self, 'teacher_profile'):
-            return f"{self.email} - تخصیص یافته به عنوان استاد "
-        elif hasattr(self, 'student_profile'):
-            return f"{self.email} - تخصیص یافته به عنوان دانشجو "
-        else:
-            return f"{self.email} - تخصیص نیافته "
+        return f" کاربر {self.first_name} {self.last_name}"
 
     @classmethod
     def make_verify_user_account(cls, user):

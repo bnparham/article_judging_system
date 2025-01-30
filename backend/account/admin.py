@@ -45,9 +45,10 @@ class MonthFilter(ModelAdminJalaliMixin, admin.SimpleListFilter):
 
         return queryset  # If no filter is applied, return the original queryset
 
+from django.contrib.auth.admin import UserAdmin
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(UserAdmin):
 
     # Display columns in the list view
     list_display = ['username', 'email', 'first_name', 'last_name',
@@ -71,13 +72,13 @@ class UserAdmin(admin.ModelAdmin):
     # Fieldsets to group fields logically in the form view
     fieldsets = (
         (_('Info'), {
-            'fields': ('username', 'email', 'first_name', 'last_name',)
-        }),
-        (_('Permisions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
+            'fields': ('username', 'email', 'first_name', 'last_name',),
         }),
         (_('Contact'), {
             'fields': ('phone_number',)
+        }),
+        (_('Permisions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
         }),
         (_('Details'), {
             'fields': ('failed_login_attempts',
