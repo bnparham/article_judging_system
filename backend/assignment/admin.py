@@ -544,7 +544,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                     'get_class_number',
                     'get_judges_number_assigned',
                     'session_status',
-                    'get_updated_at_jalali')
+                    'get_updated_at_jalali', 'edit_session',)
 
     # Fields to be used for searching in the admin interface
     search_fields = ('student__first_name', 'student__last_name', 'supervisor1__first_name',
@@ -583,6 +583,14 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
+
+    def edit_session(self, obj):
+        return format_html('<a href="{}">مشاهده</a>', f"/assignment/session/{obj.id}/change/")
+    edit_session.short_description = "اطلاعات کامل جلسه دفاعیه"
+
+    def get_list_display_links(self, request, list_display):
+        # Remove links from all columns
+        return ('edit_educationl_group')  # Keep the link only on `edit_teacher`
 
     def get_urls(self):
         urls = super().get_urls()
