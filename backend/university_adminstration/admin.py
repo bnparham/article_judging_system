@@ -1,15 +1,32 @@
 from django.contrib import admin
+from django import forms
 
-from .models import EducationalGroup, Student, Teacher
+from .models import Student, Teacher, FacultyEducationalGroup
 from jalali_date import datetime2jalali
 from django.utils.html import format_html
 
-@admin.register(EducationalGroup)
-class EducationalGroupAdmin(admin.ModelAdmin):
-    list_display = ('field_of_study', 'role', 'edit_educationl_group')
-    search_fields = ('name', 'field_of_study', 'role')
-    list_filter = ('field_of_study', 'role')
 
+class FacultyEducationalGroupAdminForm(forms.ModelForm):
+    class Meta:
+        model = FacultyEducationalGroup
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Get faculty from instance (if editing an existing object)
+        faculty = self.instance.faculty if self.instance else None
+        self.fields['educational_group'].choices = FacultyEducationalGroup.EDUCATIONAL_GROUP_CHOICES.get(faculty, [])
+
+        self.fields['faculty'].widget.attrs.update({'onchange': 'updateEducationalGroups()'})
+
+@admin.register(FacultyEducationalGroup)
+class FacultyEducationalGroupAdmin(admin.ModelAdmin):
+    form = FacultyEducationalGroupAdminForm
+    list_display = ('faculty', 'educational_group')
+
+    class Media:
+        js = ('admin/js/faculty_filter.js',)  # Load our custom JS file
     # Prevent deleting objects in the admin panel
     def has_delete_permission(self, request, obj=None):
         return False
@@ -18,27 +35,19 @@ class EducationalGroupAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def edit_educationl_group(self, obj):
-        return format_html('<a href="{}">مشاهده گروه</a>', f"/university_adminstration/educationalgroup/{obj.id}/change/")
-    edit_educationl_group.short_description = "اطلاعات کامل گروه"
-
-    def get_list_display_links(self, request, list_display):
-        # Remove links from all columns
-        return ('edit_educationl_group')  # Keep the link only on `edit_teacher`
-
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('user_full_name', 'student_number', 'email', 'phone_number', 'role',
-                    'educational_group', 'admission_year', 'gender',
+                    'admission_year', 'gender',
                     'edit_student')
     search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
-    list_filter = ('role', 'status', 'educational_group', 'military_status', 'program_type', 'gender')
+    list_filter = ('role', 'status', 'military_status', 'program_type', 'gender')
     ordering = ('student_number',)
 
     # Read-only fields in the form view
     readonly_fields = (
         'first_name', 'last_name', 'email', 'phone_number',
-        'student_number', 'educational_group', 'role',
+        'student_number', 'role',
         'admission_year', 'gender', 'military_status', 'program_type',
         'get_created_at_jalali',
         'get_updated_at_jalali'
@@ -57,7 +66,7 @@ class StudentAdmin(admin.ModelAdmin):
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_student(self, obj):
-        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/university_adminstration/student/{obj.id}/change/")
+        return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/university_adminstration/student/{obj.id}/change/")
     edit_student.short_description = "اطلاعات کامل دانشجو"
 
 
@@ -103,7 +112,7 @@ class TeacherAdmin(admin.ModelAdmin):
     user_full_name.short_description = "نام و نام خانوادگی"
 
     def edit_teacher(self, obj):
-        return format_html('<a href="{}">ویرایش استاد</a>', f"/university_adminstration/teacher/{obj.id}/change/")
+        return format_html('<a href="{}">ویرایش استاد</a>', f"/admin/university_adminstration/teacher/{obj.id}/change/")
     edit_teacher.short_description = "ورود به پنل ویرایش استاد"
 
     def get_list_display_links(self, request, list_display):

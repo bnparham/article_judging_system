@@ -585,7 +585,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     change_form_template = 'assignment/admin/change_form.html'
 
     def edit_session(self, obj):
-        return format_html('<a href="{}">مشاهده</a>', f"/assignment/session/{obj.id}/change/")
+        return format_html('<a href="{}">مشاهده</a>', f"/admin/assignment/session/{obj.id}/change/")
     edit_session.short_description = "اطلاعات کامل جلسه دفاعیه"
 
     def get_list_display_links(self, request, list_display):
@@ -595,15 +595,16 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('download_session/', self.admin_site.admin_view(self.download_session), name='download_session'),
+            path('download_session', self.admin_site.admin_view(self.download_session), name='download_session'),
         ]
         return custom_urls + urls
 
     # Add a button/link in the admin toolbar
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
+        name = "دانلود گزارش جلسه ها به صورت فایل Excel"
         extra_context['custom_button'] = format_html(
-            '<a class="button" href="download_session/">دانلود گزارش جلسه‌ها به صورت Excel</a>'
+            f'<a class="button" href="download_session">{name}</a>'
         )
         return super().changelist_view(request, extra_context=extra_context)
 

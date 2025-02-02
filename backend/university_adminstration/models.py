@@ -2,38 +2,82 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from .validators import is_persian_only, validate_email_domain, validate_iranian_mobile_number
 
-class EducationalGroup(models.Model):
-    FIELD_OF_STUDY_CHOICES_DICT = {
-        'CS': 'کامپیوتر',  # Computer Science
-        'MAT': 'ریاضی',  # Mathematics
-        'STA': 'آمار'  # Statistics
+class FacultyEducationalGroup(models.Model):
+    # Define Faculties
+    FACULTY_CHOICES_DICT = {
+        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
+        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
+        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
+        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
+        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
+        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
+        'ENG': 'دانشکده فنی',  # Faculty of Engineering
+        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
+        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
+        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
+        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
+        'UNI': 'پردیس دانشگاهی',  # University Campus
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
+        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
     }
 
-    ROLE_CHOICES_DICT = {
-        'Ph.D.': 'دکتری',
-        'Master': 'ارشد'
-    }
-
-    field_of_study = models.CharField(
-        max_length=3,
-        choices=FIELD_OF_STUDY_CHOICES_DICT,
-        verbose_name='رشته تحصیلی'
+    faculty = models.CharField(
+        max_length=5,
+        choices=FACULTY_CHOICES_DICT.items(),
+        verbose_name='دانشکده',
+        default='MAT',
     )
-    role = models.CharField(
+
+    # Define Educational Groups Related to Each Faculty
+    EDUCATIONAL_GROUP_CHOICES = {
+        'MAT': [
+            ('APPMATH', 'ریاضیات کاربردی'),
+            ('PUREMATH', 'ریاضیات محض'),
+            ('STAT', 'آمار'),
+            ('CS', 'علوم کامپیوتر'),
+        ],
+        'ENG': [
+            ('ELEC', 'برق'),
+            ('MECH', 'مکانیک'),
+            ('CIVIL', 'عمران'),
+        ],
+        'CHE': [
+            ('CHEM', 'شیمی کاربردی'),
+            ('CHEMENG', 'مهندسی شیمی'),
+        ],
+        'MGT': [
+            ('BUS', 'مدیریت بازرگانی'),
+            ('ECON', 'اقتصاد'),
+        ],
+    }
+
+    educational_group = models.CharField(
         max_length=10,
-        choices=ROLE_CHOICES_DICT,
-        verbose_name='گروه ارشد | دکتری'
+        choices=EDUCATIONAL_GROUP_CHOICES['MAT'],
+        verbose_name="گروه آموزشی",
+        default='MAT',
     )
+
+    def save(self, *args, **kwargs):
+        """ Ensure that the selected educational group belongs to the selected faculty """
+        valid_choices = dict(self.EDUCATIONAL_GROUP_CHOICES).get(self.faculty, [])
+        valid_group_keys = [key for key, _ in valid_choices]
+        if self.educational_group not in valid_group_keys:
+            self.educational_group = None  # Reset if invalid choice
+        super().save(*args, **kwargs)
+
+    def get_educational_group_choices(self):
+        """ Return the filtered educational group choices based on the selected faculty """
+        return self.EDUCATIONAL_GROUP_CHOICES.get(self.faculty, [])
 
     def __str__(self):
-        return f" گروه {self.FIELD_OF_STUDY_CHOICES_DICT[self.field_of_study]} - {self.ROLE_CHOICES_DICT[self.role]}"
+        return f"{self.get_faculty_display()} - {self.get_educational_group_display()}"
 
     class Meta:
-        verbose_name = "گروه آموزشی"
-        verbose_name_plural = "گروه های آموزشی"
-        constraints = [
-            models.UniqueConstraint(fields=['field_of_study', 'role'], name='unique_field_role',)]
-
+        verbose_name = "دانشکده و گروه آموزشی"
+        verbose_name_plural = "دانشکده‌ها و گروه‌های آموزشی"
 
 
 class Student(models.Model):
@@ -78,14 +122,6 @@ class Student(models.Model):
     student_number = models.CharField(max_length=20, unique=True,
                                       verbose_name='شماره دانشجویی',
                                       editable=False)
-    educational_group = models.ForeignKey(
-        EducationalGroup,
-        on_delete=models.PROTECT,
-        verbose_name='گروه',
-        related_name='students_group',
-        editable=False,
-        null=True,
-    )
     role = models.CharField(max_length=20,
                             verbose_name='مقطع تحصیلی',
                             choices=ROLES_DICT,
@@ -179,11 +215,6 @@ class Teacher(models.Model):
                                   ('MASTER', 'کارشناسی ارشد'),  # Master's Degree
                                   ('PHD', 'دکتری')  # Doctorate (Ph.D.)
                               ])
-    educational_groups = models.ManyToManyField(
-        'EducationalGroup',
-        related_name="teachers_group",
-        verbose_name="گروه‌های آموزشی",
-    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
 
