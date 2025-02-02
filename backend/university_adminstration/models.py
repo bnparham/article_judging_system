@@ -78,7 +78,8 @@ class FacultyEducationalGroup(models.Model):
     class Meta:
         verbose_name = "دانشکده و گروه آموزشی"
         verbose_name_plural = "دانشکده‌ها و گروه‌های آموزشی"
-
+        constraints = [
+            models.UniqueConstraint(fields=['faculty', 'educational_group'], name='unique_faculty_educationalGroup',)]
 
 class Student(models.Model):
     ROLES_DICT = {

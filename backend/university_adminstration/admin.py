@@ -8,6 +8,7 @@ from django.utils.html import format_html
 @admin.register(FacultyEducationalGroup)
 class FacultyEducationalGroupAdmin(admin.ModelAdmin):
     list_display = ('faculty', 'educational_group')
+    list_filter = ('faculty',)
 
     class Media:
         js = ('admin/js/faculty_filter.js',)  # Load our custom JS file
@@ -18,6 +19,10 @@ class FacultyEducationalGroupAdmin(admin.ModelAdmin):
     # Prevent deleting objects in the admin panel
     def has_change_permission(self, request, obj=None):
         return False
+
+    def get_list_display_links(self, request, list_display):
+        # Remove links from all columns
+        return
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
