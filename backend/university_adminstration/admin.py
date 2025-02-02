@@ -5,24 +5,8 @@ from .models import Student, Teacher, FacultyEducationalGroup
 from jalali_date import datetime2jalali
 from django.utils.html import format_html
 
-
-class FacultyEducationalGroupAdminForm(forms.ModelForm):
-    class Meta:
-        model = FacultyEducationalGroup
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Get faculty from instance (if editing an existing object)
-        faculty = self.instance.faculty if self.instance else None
-        self.fields['educational_group'].choices = FacultyEducationalGroup.EDUCATIONAL_GROUP_CHOICES.get(faculty, [])
-
-        self.fields['faculty'].widget.attrs.update({'onchange': 'updateEducationalGroups()'})
-
 @admin.register(FacultyEducationalGroup)
 class FacultyEducationalGroupAdmin(admin.ModelAdmin):
-    form = FacultyEducationalGroupAdminForm
     list_display = ('faculty', 'educational_group')
 
     class Media:
