@@ -95,6 +95,7 @@ class StudentAdmin(admin.ModelAdmin):
     readonly_fields = (
         'first_name', 'last_name', 'email', 'phone_number',
         'student_number', 'role',
+        '_faculty_educational_group',
         'admission_year', 'gender', 'military_status', 'program_type',
         'get_created_at_jalali',
         'get_updated_at_jalali'
@@ -111,6 +112,10 @@ class StudentAdmin(admin.ModelAdmin):
     def user_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
     user_full_name.short_description = "نام و نام خانوادگی"
+
+    @admin.display(description="دانشکده و گروه آموزشی")
+    def _faculty_educational_group(self, obj):
+        return  obj.faculty_educational_group
 
     def edit_student(self, obj):
         return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/university_adminstration/student/{obj.id}/change/")

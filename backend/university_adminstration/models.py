@@ -87,9 +87,8 @@ class Student(models.Model):
         'Master': 'ارشد',
     }
     SERVICE_STATUS_CHOICES = [
-        ('Completed', 'پایان یافته'),
-        ('Exempt', 'معاف'),
-        ('Pending', 'در حال انجام'),
+        ('Subject', 'مشمول'),  # Obligated for service but not yet started
+        ('NotSubject', 'غیر مشمول'),  # Not obligated for service
     ]
     PROGRAM_TYPE_CHOICES = [
         ('Day', 'روزانه'),
@@ -143,28 +142,38 @@ class Student(models.Model):
         max_length=10,
         verbose_name='جنسیت',
         choices=GENDER_CHOICES,
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         editable=False
     )
     military_status = models.CharField(
         max_length=20,
         verbose_name='وضعیت سربازی',
         choices=SERVICE_STATUS_CHOICES,
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         editable=True,
     )
     program_type = models.CharField(
         max_length=10,
         verbose_name='دوره',
         choices=PROGRAM_TYPE_CHOICES,
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         editable=False
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="ساخته شده در زمان/تاریخ")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین ویرایش در زمان/تاریخ")
+    faculty_educational_group = models.ForeignKey(
+        'FacultyEducationalGroup',
+        on_delete=models.CASCADE,
+        related_name='student_FEG',
+        verbose_name="دانشکده و گروه آموزشی",
+        help_text="دانشکده و گروه آموزشی ای که دانشجو به آن تخصیص داده میشود",
+        null=False,
+        blank=False,
+        editable=False,
+    )
 
     def __str__(self):
         if self.gender == "Male":
@@ -234,7 +243,7 @@ class TeacherFacultyEducationalGroupAssignment(models.Model):
     faculty_educational_group = models.ForeignKey(
         'FacultyEducationalGroup',
         on_delete=models.CASCADE,
-        related_name='FEG',
+        related_name='teacher_FEG',
         verbose_name="دانشکده و گروه آموزشی",
         help_text="دانشکده و گروه آموزشی ای که استاد به آن تخصیص داده میشود"
     )
