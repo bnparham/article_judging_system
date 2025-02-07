@@ -609,6 +609,25 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
 
+    FACULTY_CHOICES_DICT = {
+        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
+        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
+        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
+        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
+        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
+        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
+        'ENG': 'دانشکده فنی',  # Faculty of Engineering
+        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
+        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
+        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
+        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
+        'UNI': 'پردیس دانشگاهی',  # University Campus
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
+        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
+    }
+
     # def formfield_for_foreignkey(self, db_field, request, **kwargs):
     #     if db_field.name == "faculty_educational_group":
     #         qs = FacultyEducationalGroup.objects.filter(faculty=request.user.role).order_by("faculty")
@@ -695,6 +714,12 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         })
 
     def get_fieldsets(self, request, obj=None):
+        title = ""
+        match request.user.role:
+            case 'ALL':
+                title = "(تمام دانشجویان)"
+            case _:
+                title = f" از دسته بندی دانشجویان {self.FACULTY_CHOICES_DICT[request.user.role]}"
         # If `obj` is None, it's the Add view
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
@@ -702,7 +727,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 (_('اطلاعات جلسه دفاعیه'), {
                     'fields': ('schedule', 'date', 'start_time', 'end_time', 'faculty_educational_group', 'class_number')
                 }),
-                (_('اطلاعات دانشجو'), {
+                (_(f"اطلاعات دانشجو - {title}"), {
                     'fields': (
                         'student',
                     )
@@ -744,10 +769,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                     در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                                 """)
                         }),
-                        (_('اطلاعات دانشجو'), {
+                        (_(f"{title} اطلاعات دانشجو - "), {
                             'fields': (
                                 'student',
-                                'get_student_role',
                             )
                         }),
                         (_('اطلاعات استاد راهنما'), {
@@ -787,10 +811,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                         """)
                         }),
-                        (_('اطلاعات دانشجو'), {
+                        (_(f"{title} اطلاعات دانشجو - "), {
                             'fields': (
                                 'student',
-                                'get_student_role',
                             )
                         }),
                         (_('اطلاعات استاد راهنما'), {
