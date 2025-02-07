@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django import forms
+from django.db.models import Q
 
-from .models import Student, Teacher, FacultyEducationalGroup
+from .models import Student, Teacher, FacultyEducationalGroup, TeacherFacultyEducationalGroupAssignment
 from jalali_date import datetime2jalali
 from django.utils.html import format_html
 
@@ -9,6 +10,7 @@ from django.utils.html import format_html
 class FacultyEducationalGroupAdmin(admin.ModelAdmin):
     list_display = ('faculty', 'educational_group')
     list_filter = ('faculty',)
+    search_fields = ('faculty', 'educational_group')
 
     class Media:
         js = ('admin/js/faculty_filter.js',)  # Load our custom JS file
@@ -16,13 +18,69 @@ class FacultyEducationalGroupAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # Prevent deleting objects in the admin panel
+    # Prevent chaning objects in the admin panel
     def has_change_permission(self, request, obj=None):
         return False
 
     def get_list_display_links(self, request, list_display):
         # Remove links from all columns
         return
+
+    FACULTY_CHOICES_DICT = {
+        'HUM': 'دانشکده ادبیات و علوم انسانی',
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',
+        'BAS': 'دانشکده علوم پایه',
+        'MAT': 'دانشکده علوم ریاضی',
+        'MAR': 'دانشکده علوم و فنون دریایی',
+        'CHE': 'دانشکده شیمی',
+        'AGR': 'دانشکده علوم کشاورزی',
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',
+        'ENG': 'دانشکده فنی',
+        'MNG': 'دانشکده مدیریت و اقتصاد',
+        'ARC': 'دانشکده معماری و هنر',
+        'NAT': 'دانشکده منابع طبیعی',
+        'MECH': 'دانشکده مهندسی مکانیک',
+        'UNI': 'پردیس دانشگاهی',
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',
+        'GIL': 'پژوهشکده گیلان شناسی',
+    }
+    EDUCATIONAL_GROUP_CHOICES = {
+        'MAT': [
+            ('APPMATH', 'ریاضیات کاربردی'),
+            ('PUREMATH', 'ریاضیات محض'),
+            ('STAT', 'آمار'),
+            ('CS', 'علوم کامپیوتر'),
+        ],
+        'ENG': [
+            ('ELEC', 'برق'),
+            ('MECH', 'مکانیک'),
+            ('CIVIL', 'عمران'),
+        ],
+        'CHE': [
+            ('CHEM', 'شیمی کاربردی'),
+            ('CHEMENG', 'مهندسی شیمی'),
+        ],
+        'MGT': [
+            ('BUS', 'مدیریت بازرگانی'),
+            ('ECON', 'اقتصاد'),
+        ],
+    }
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        # Partial search for faculty names
+        faculty_matches = [k for k, v in self.FACULTY_CHOICES_DICT.items() if search_term in v]
+        if faculty_matches:
+            queryset |= self.model.objects.filter(Q(faculty__in=faculty_matches))
+
+        # Partial search for educational groups
+        edu_reverse_map = {k: v for sublist in self.EDUCATIONAL_GROUP_CHOICES.values() for k, v in sublist}
+        edu_matches = [k for k, v in edu_reverse_map.items() if search_term in v]
+        if edu_matches:
+            queryset |= self.model.objects.filter(Q(educational_group__in=edu_matches))
+
+        return queryset, use_distinct
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
@@ -84,8 +142,26 @@ class StudentAdmin(admin.ModelAdmin):
         # Remove links from all columns
         return ('edit_student')  # Keep the link only on `edit_teacher`
 
+
+class TeacherFacultyEducationalGroupAssignmentInline(admin.TabularInline):
+    model = TeacherFacultyEducationalGroupAssignment
+    extra = 1  # Number of empty rows to show for adding new judges
+    verbose_name = "دانشکده و گروه آموزشی"
+    verbose_name_plural = "تخصیص رشته"
+    autocomplete_fields = ['faculty_educational_group']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('teacher', 'faculty_educational_group')  # Optimize related field
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super(TeacherFacultyEducationalGroupAssignmentInline, self).get_formset(request, obj, **kwargs)
+        formset.request = request
+        return formset
+
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
+    inlines = [TeacherFacultyEducationalGroupAssignmentInline]
     list_display = ('user_full_name', 'national_code',
                     'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
     search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')

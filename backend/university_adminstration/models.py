@@ -229,3 +229,20 @@ class Teacher(models.Model):
     class Meta:
         verbose_name = "استاد"
         verbose_name_plural = "لیست اساتید"
+
+class TeacherFacultyEducationalGroupAssignment(models.Model):
+    faculty_educational_group = models.ForeignKey(
+        'FacultyEducationalGroup',
+        on_delete=models.CASCADE,
+        related_name='FEG',
+        verbose_name="دانشکده و گروه آموزشی",
+        help_text="دانشکده و گروه آموزشی ای که استاد به آن تخصیص داده میشود"
+    )
+    teacher = models.ForeignKey(
+        'university_adminstration.Teacher',
+        on_delete=models.CASCADE,
+        verbose_name="استاد",
+    )
+
+    def __str__(self):
+        return f"{self.faculty_educational_group} - {self.teacher}"
