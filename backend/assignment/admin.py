@@ -445,6 +445,7 @@ class SessionAdminForm(forms.ModelForm):
         self.supervisor4 = cleaned_data.get('supervisor4')
         self.graduate_monitor = cleaned_data.get('graduate_monitor')
         self.class_number = cleaned_data.get('class_number')
+        self.faculty_educational_group = cleaned_data.get('faculty_educational_group')
 
         self.validate_empty_fields()
 
@@ -472,7 +473,8 @@ class SessionAdminForm(forms.ModelForm):
 
     def validate_empty_fields(self):
         if self.start_time == None or self.end_time == None or self.student == None\
-                or self.class_number == None or self.supervisor1 == None or self.graduate_monitor == None:
+                or self.class_number == None or self.supervisor1 == None or self.graduate_monitor == None\
+                or self.faculty_educational_group == None:
             raise ValidationError(f'')
 
     def valiadte_students(self, overlapping_sessions):
