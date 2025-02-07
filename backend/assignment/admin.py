@@ -565,12 +565,12 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
     inlines = [JudgeAssignmentInline]
     # Fields to be displayed in the list view
-    list_display = ('get_id', 'student', 'get_student_role', 'schedule', 'faculty_educational_group', 'get_date_jalali',
+    list_display = ('edit_session', 'get_id', 'student', 'get_student_role', 'schedule', 'faculty_educational_group', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
                     'get_class_number',
                     'get_judges_number_assigned',
                     'session_status',
-                    'get_updated_at_jalali', 'edit_session',)
+                    'get_updated_at_jalali',)
 
     # Fields to be used for searching in the admin interface
     search_fields = ('student__first_name', 'student__last_name', 'supervisor1__first_name',
@@ -597,7 +597,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali',
                        'get_updated_at_jalali',
-                       'is_active',)
+                       'is_active', 'created_by', 'updated_by')
 
     # Fieldsets to group fields logically in the form view
 
@@ -719,7 +719,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             case 'ALL':
                 title = "(تمام دانشجویان)"
             case _:
-                title = f" از دسته بندی دانشجویان {self.FACULTY_CHOICES_DICT[request.user.role]}"
+                title = f" از مجموعه دانشجویان {self.FACULTY_CHOICES_DICT[request.user.role]}"
         # If `obj` is None, it's the Add view
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
@@ -792,7 +792,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                         }),
                         (_('تاریخ ایجاد / ویرایش این جلسه'), {
                             'fields': ('get_created_at_jalali',
+                                       'created_by',
                                        'get_updated_at_jalali',
+                                       'updated_by',
                                        )
                         }),
                         (_('اطلاعات اضافی'), {
@@ -834,7 +836,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                         }),
                         (_('تاریخ ایجاد / ویرایش این جلسه'), {
                             'fields': ('get_created_at_jalali',
+                                       'created_by',
                                        'get_updated_at_jalali',
+                                       'updated_by',
                                        )
                         }),
                         (_('اطلاعات اضافی'), {
@@ -957,6 +961,13 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:  # If created_by is not set, assign the current user
+            obj.created_by = request.user.name
+        obj.updated_by = request.user.user_info  # Always set updated_by to the current user
+
+        # Save the object
+        obj.save()
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
