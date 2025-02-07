@@ -47,10 +47,6 @@ class FacultyEducationalGroup(models.Model):
             ('CHEM', 'شیمی کاربردی'),
             ('CHEMENG', 'مهندسی شیمی'),
         ],
-        'MGT': [
-            ('BUS', 'مدیریت بازرگانی'),
-            ('ECON', 'اقتصاد'),
-        ],
     }
 
 

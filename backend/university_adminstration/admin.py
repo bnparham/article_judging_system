@@ -84,7 +84,7 @@ class FacultyEducationalGroupAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('user_full_name', 'student_number', 'email', 'phone_number', 'role',
+    list_display = ('user_full_name', 'student_number', '_faculty_educational_group', 'role', 'phone_number', 'email',
                     'admission_year', 'gender',
                     'edit_student')
     search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')

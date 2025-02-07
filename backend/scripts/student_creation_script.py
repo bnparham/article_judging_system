@@ -1,9 +1,40 @@
 # student_creation_script.py
+import random
 
 from university_adminstration.models import Student, FacultyEducationalGroup
 
+
+from university_adminstration.models import FacultyEducationalGroup
+
+# List of faculty groups to ensure in the database
+faculty_groups_data = [
+    ("MAT", "CS"),
+    ("MAT", "APPMATH"),
+    ("CHE", "CHEM"),
+    ("CHE", "CHEMENG"),
+    ("ENG", "ELEC"),
+    ("ENG", "MECH")
+]
+
+# Loop through each faculty-educational group pair and check if it exists, if not, create it
+for faculty, educational_group in faculty_groups_data:
+    # Check if the FacultyEducationalGroup already exists
+    if not FacultyEducationalGroup.objects.filter(faculty=faculty, educational_group=educational_group).exists():
+        # Create the FacultyEducationalGroup if it doesn't exist
+        FacultyEducationalGroup.objects.create(faculty=faculty, educational_group=educational_group)
+        print(f"Created FacultyEducationalGroup: {faculty} - {educational_group}")
+    else:
+        print(f"FacultyEducationalGroup {faculty} - {educational_group} already exists")
+
 # Example FacultyEducationalGroup, assuming you've already created some
-faculty_group = FacultyEducationalGroup.objects.first()  # Replace with actual query to get a FacultyEducationalGroup object
+faculty_groups = [
+    FacultyEducationalGroup.objects.filter(faculty="MAT", educational_group="CS"),
+    FacultyEducationalGroup.objects.filter(faculty="MAT", educational_group="APPMATH"),
+    FacultyEducationalGroup.objects.filter(faculty="CHE", educational_group="CHEM"),
+    FacultyEducationalGroup.objects.filter(faculty="CHE", educational_group="CHEMENG"),
+    FacultyEducationalGroup.objects.filter(faculty="ENG", educational_group="ELEC"),
+    FacultyEducationalGroup.objects.filter(faculty="ENG", educational_group="MECH")
+]
 
 # 20 sample data entries
 students_data = [
@@ -45,7 +76,7 @@ for first_name, last_name, email, phone_number, student_number, role, status, ad
             gender=gender,
             military_status=military_status,
             program_type=program_type,
-            faculty_educational_group=faculty_group  # Assuming you've already set a FacultyEducationalGroup
+            faculty_educational_group=random.choice(faculty_groups).first()  # Assuming you've already set a FacultyEducationalGroup
         )
 
         # Perform validations
@@ -57,3 +88,6 @@ for first_name, last_name, email, phone_number, student_number, role, status, ad
         print(f"Student {first_name} {last_name} saved successfully!")
     except ValidationError as e:
         print(f"Validation Error for {first_name} {last_name}: {e}")
+
+
+# exec(open('scripts/student_creation_script.py').read())
