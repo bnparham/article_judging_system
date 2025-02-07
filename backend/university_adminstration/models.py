@@ -53,9 +53,10 @@ class FacultyEducationalGroup(models.Model):
         ],
     }
 
+
     educational_group = models.CharField(
         max_length=10,
-        choices=EDUCATIONAL_GROUP_CHOICES['MAT'],
+        choices=[(_, label) for groups in EDUCATIONAL_GROUP_CHOICES.values() for _, label in groups],
         verbose_name="گروه آموزشی",
         default='MAT',
     )
@@ -67,10 +68,6 @@ class FacultyEducationalGroup(models.Model):
         if self.educational_group not in valid_group_keys:
             self.educational_group = None  # Reset if invalid choice
         super().save(*args, **kwargs)
-
-    def get_educational_group_choices(self):
-        """ Return the filtered educational group choices based on the selected faculty """
-        return self.EDUCATIONAL_GROUP_CHOICES.get(self.faculty, [])
 
     def __str__(self):
         return f"{self.get_faculty_display()} - {self.get_educational_group_display()}"
