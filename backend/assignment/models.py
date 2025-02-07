@@ -146,7 +146,8 @@ class Session(models.Model):
         verbose_name = 'جلسه دفاع پایان نامه / رساله'
         verbose_name_plural = 'جلسات دفاع پایان نامه / رساله'
         constraints = [
-            models.UniqueConstraint(fields=['schedule', 'date', 'class_number', 'start_time', 'end_time'],
+            models.UniqueConstraint(fields=['schedule', 'date', 'class_number',
+                                            'start_time', 'end_time', 'faculty_educational_group'],
                                     name='unique_session',)]
 
     @property
