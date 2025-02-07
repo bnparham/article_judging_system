@@ -52,11 +52,16 @@ class UserAdmin(UserAdmin):
 
     # Display columns in the list view
     list_display = ['username', 'email', 'first_name', 'last_name',
+                    'role',
                     'get_last_login_jalali',
-                    'is_active', 'is_staff', 'verify_account', 'get_date_joined_jalali']
+                    'is_active', 'is_staff',
+                    'verify_account',
+                    'get_date_joined_jalali',]
 
     # Filters available in the list view
-    list_filter = ['is_active', 'is_staff', 'verify_account', 'failed_login_attempts', 'date_joined', MonthFilter]
+    list_filter = ['is_active', 'is_staff', 'verify_account',
+                   'failed_login_attempts', 'date_joined',
+                   MonthFilter, 'role']
 
     # Search fields for searching the list view
     search_fields = ['username', 'email', 'first_name', 'last_name']
@@ -78,7 +83,7 @@ class UserAdmin(UserAdmin):
             'fields': ('phone_number',)
         }),
         (_('Permisions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'verify_account')
+            'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'verify_account')
         }),
         (_('Details'), {
             'fields': ('failed_login_attempts',
