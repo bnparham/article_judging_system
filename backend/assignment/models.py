@@ -4,7 +4,6 @@ from django.db.models import Q, Case, When, F, Value, CharField
 from django.db.models.functions import Concat
 from jalali_date import date2jalali
 
-
 class Session(models.Model):
 
     CLASS_CHOICES = [
@@ -132,6 +131,15 @@ class Session(models.Model):
         auto_now=True,
         help_text="زمان آخرین به‌روزرسانی نشست",
         verbose_name="آخرین ویرایش در زمان"
+    )
+    faculty_educational_group = models.ForeignKey(
+        'university_adminstration.FacultyEducationalGroup',
+        on_delete=models.CASCADE,
+        related_name='session_FEG',
+        verbose_name="دانشکده و گروه آموزشی",
+        help_text="دانشکده و گروه آموزشی ای که دانشجو به آن تخصیص داده میشود",
+        null=False,
+        blank=False,
     )
 
     class Meta:

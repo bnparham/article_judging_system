@@ -539,7 +539,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
     inlines = [JudgeAssignmentInline]
     # Fields to be displayed in the list view
-    list_display = ('get_id', 'student', 'get_student_role', 'schedule', 'get_date_jalali',
+    list_display = ('get_id', 'student', 'get_student_role', 'schedule', 'faculty_educational_group', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
                     'get_class_number',
                     'get_judges_number_assigned',
@@ -566,6 +566,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
     autocomplete_fields = [
         'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
+        'faculty_educational_group',
     ]
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
@@ -668,7 +669,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             # Exclude the "سایر اطلاعات" fieldset
             return (
                 (_('اطلاعات جلسه دفاعیه'), {
-                    'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
+                    'fields': ('schedule', 'date', 'start_time', 'end_time', 'faculty_educational_group', 'class_number')
                 }),
                 (_('اطلاعات دانشجو'), {
                     'fields': (
@@ -704,7 +705,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 case True:
                     return (
                         (_('اطلاعات جلسه دفاعیه'), {
-                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'fields': ('schedule', 'date', 'start_time', 'end_time',
+                                       'faculty_educational_group', 'class_number'),
                             'description': _("""
                                 ✅
                     نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
