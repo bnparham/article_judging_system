@@ -21,7 +21,7 @@ from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 
 from schedule.models import Schedule
 
-from university_adminstration.models import FacultyEducationalGroup
+from university_adminstration.models import FacultyEducationalGroup, Student
 
 
 class MonthFilter_created_at(admin.SimpleListFilter):
@@ -405,13 +405,22 @@ class SessionAdminForm(forms.ModelForm):
         super(SessionAdminForm, self).__init__(*args, **kwargs)
         match self.request.user.role:
             case 'ALL':
-                qs = FacultyEducationalGroup.objects.all()
-                self.fields['faculty_educational_group'].queryset = qs
+                qs__faculty_educational_group = FacultyEducationalGroup.objects.all()
+                self.fields['faculty_educational_group'].queryset = qs__faculty_educational_group
+
+                qs__student = Student.objects.all()
+                self.fields['student'].queryset = qs__student
+
             case _:
-                qs = FacultyEducationalGroup.objects.\
+                qs__faculty_educational_group = FacultyEducationalGroup.objects.\
                     filter(faculty=self.request.user.role)
-                self.fields['faculty_educational_group'].queryset = qs
+                self.fields['faculty_educational_group'].queryset = qs__faculty_educational_group
+
+                qs__student = Student.objects.filter(faculty_educational_group__faculty=self.request.user.role)
+                self.fields['student'].queryset = qs__student
+
         self.fields['faculty_educational_group'].empty_label = None
+        self.fields['student'].empty_label = None
 
     class Meta:
         model = Session
@@ -586,8 +595,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali',
                        'get_updated_at_jalali',
-                       'is_active',
-                       'get_student_role')
+                       'is_active',)
 
     # Fieldsets to group fields logically in the form view
 
