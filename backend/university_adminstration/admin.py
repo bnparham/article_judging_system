@@ -121,6 +121,20 @@ class StudentAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">مشاهده دانشجو</a>', f"/admin/university_adminstration/student/{obj.id}/change/")
     edit_student.short_description = "اطلاعات کامل دانشجو"
 
+    def get_queryset(self, request):
+        """
+        Filter students based on the role of the current admin user.
+        - If the user's role is "ALL", they can see all students.
+        - If the user's role is a specific faculty, they can only see students from that faculty.
+        """
+        queryset = super().get_queryset(request)
+
+        # If the admin user has the role 'ALL', show all students
+        if request.user.role == 'ALL':
+            return queryset
+
+        # Otherwise, filter by faculty (only students from the same faculty as the admin)
+        return queryset.filter(faculty_educational_group__faculty=request.user.role)
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
