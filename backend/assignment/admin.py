@@ -21,6 +21,8 @@ from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 
 from schedule.models import Schedule
 
+from university_adminstration.models import FacultyEducationalGroup
+
 
 class MonthFilter_created_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ایجاد شده ')
@@ -398,6 +400,19 @@ class JudgeAssignmentInline(admin.TabularInline):
 
 
 class SessionAdminForm(forms.ModelForm):
+    
+    def __init__(self, *args, **kwargs):  # ✅ Accept args and kwargs
+        super(SessionAdminForm, self).__init__(*args, **kwargs)
+        match self.request.user.role:
+            case 'ALL':
+                qs = FacultyEducationalGroup.objects.all()
+                self.fields['faculty_educational_group'].queryset = qs
+            case _:
+                qs = FacultyEducationalGroup.objects.\
+                    filter(faculty=self.request.user.role)
+                self.fields['faculty_educational_group'].queryset = qs
+        self.fields['faculty_educational_group'].empty_label = None
+
     class Meta:
         model = Session
         fields = '__all__'
@@ -566,7 +581,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
     autocomplete_fields = [
         'supervisor1', 'supervisor2', 'supervisor3', 'supervisor4', 'graduate_monitor',
-        'faculty_educational_group',
     ]
 
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
@@ -584,6 +598,13 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
+
+    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    #     if db_field.name == "faculty_educational_group":
+    #         qs = FacultyEducationalGroup.objects.filter(faculty=request.user.role).order_by("faculty")
+    #         kwargs["queryset"] = qs
+    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
     def edit_session(self, obj):
         return format_html('<a href="{}">مشاهده</a>', f"/admin/assignment/session/{obj.id}/change/")
