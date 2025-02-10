@@ -15,6 +15,8 @@ class Schedule(models.Model):
             'نیم سال اول',
         'two':
             'نیم سال دوم',
+        'third':
+            'نیم سال تابستان',
     }
 
     year = models.PositiveSmallIntegerField(
