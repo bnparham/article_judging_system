@@ -111,14 +111,14 @@ class StudentAdmin(admin.ModelAdmin):
     ordering = ('student_number',)
 
     # Read-only fields in the form view
-    readonly_fields = (
+    readonly_fields = [
         'first_name', 'last_name', 'email', 'phone_number',
         'student_number', 'role',
         '_faculty_educational_group',
-        'admission_year', 'gender', 'military_status', 'program_type',
+        'admission_year', 'gender', 'program_type',
         'get_created_at_jalali',
         'get_updated_at_jalali'
-    )
+    ]
 
     def has_add_permission(self, request, obj=None):
         return False  # Always return False to disable adding new objects
@@ -126,7 +126,6 @@ class StudentAdmin(admin.ModelAdmin):
     # Prevent deleting objects in the admin panel
     def has_delete_permission(self, request, obj=None):
         return False
-
 
     def user_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
@@ -157,9 +156,16 @@ class StudentAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         # If `obj` is None, it's the "Add" view; otherwise, it's the "Change" view
-        if obj is None:
+        if obj is not None and obj.gender == "Female":
             # Return an empty list of readonly fields in the Add view
-            return []
+            return [
+            'first_name', 'last_name', 'email', 'phone_number',
+            'student_number', 'role',
+            '_faculty_educational_group',
+            'admission_year', 'gender', 'program_type', 'military_status',
+            'get_created_at_jalali',
+            'get_updated_at_jalali'
+        ]
         return self.readonly_fields
 
     @admin.display(description='ایجاد شده در زمان/تاریخ', ordering='created_at')

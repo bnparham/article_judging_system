@@ -189,7 +189,7 @@ class Student(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk:  # Check if the object already exists in the database
-            raise ValueError("Student object cannot be modified.")
+            raise ValueError("دانشجو نمیتواند مجددا ویرایش شود")
         super().save(*args, **kwargs)
 
 class Teacher(models.Model):
