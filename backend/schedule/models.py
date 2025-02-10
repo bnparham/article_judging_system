@@ -35,6 +35,14 @@ class Schedule(models.Model):
                             default=SEMESTER_CHOICES['one'],
                             null=False,
                             blank=False)
+    start_date = models.DateField(
+        help_text="روز و ماه و سال شروع نیم سال را مشخص کنید.",
+        verbose_name='تاریخ شروع نیم سال تحصیلی',
+    )
+    end_date = models.DateField(
+        help_text="روز و ماه و سال پایان نیم سال را مشخص کنید.",
+        verbose_name='تاریخ پایان نیم سال تحصیلی',
+    )
 
     def __str__(self):
         return f" سال {self.year} - {self.SEMESTER_CHOICES[self.semester]}"
