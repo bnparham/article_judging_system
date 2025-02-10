@@ -577,7 +577,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                     'get_judges_number_assigned',
                     'session_status',
                     'get_updated_at_jalali',)
-
     # Fields to be used for searching in the admin interface
     search_fields = ('student__first_name', 'student__last_name', 'supervisor1__first_name',
                      'supervisor1__last_name',
@@ -614,6 +613,14 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
 
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
+
+    def get_queryset(self, request, *args, **kwargs):
+        queryset = super(SessionAdmin, self).get_queryset(request, *args, **kwargs)
+        match request.user.role:
+            case 'ALL':
+                return queryset
+            case _:
+                return queryset.filter(faculty_educational_group__faculty=request.user.role)
 
     def edit_session(self, obj):
         return format_html('<a href="{}">مشاهده</a>', f"/admin/assignment/session/{obj.id}/change/")
@@ -813,7 +820,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 case False:
                     return (
                         (_('اطلاعات جلسه دفاعیه'), {
-                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'faculty_educational_group', 'class_number'),
                             'description': _("""
                         ✅
             نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
