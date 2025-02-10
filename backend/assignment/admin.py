@@ -691,7 +691,8 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         # If the user accesses the page
         return render(request, 'assignment/download_session.html', {
             'schedules': find_all_schedules,
-            'faculty': find_all_faculty,
+            'faculty_list': find_all_faculty,
+            'faculty_name': FacultyEducationalGroup.objects.filter(faculty=request.user.role).last(),
         })
 
     def get_fieldsets(self, request, obj=None):

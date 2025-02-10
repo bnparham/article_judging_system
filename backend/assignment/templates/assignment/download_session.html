@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
-<h1>دانلود گزارش نشست ها بر اساس نیم سال های تحصیلی</h1>
+<h1> دانلود گزارش نشست های <b>{{faculty_name.get_faculty_display}}</b> بر اساس نیم سال های تحصیلی </h1>
 <form method="POST" action="">
     {% csrf_token %}
     <div style="margin:10px 0">
@@ -14,12 +14,12 @@
     </div>
     <br>
     <div style="margin:10px 0">
-        <label for="schedule">فیلتر بر دانشکده و گروه های آموزشی :</label>
+        <label for="schedule">فیلتر بر اساس گروه های آموزشی :</label>
         <select name="faculty" id="faculty">
-            {% for f in faculty %}
+            {% for f in faculty_list %}
                 <option value="{{f.id}}">{{f}}</option>
             {% endfor %}
-            <option value="10">همه گروه ها</option>
+            <option value="10">همه گروه های {{faculty_name.get_faculty_display}}</option>
         </select>
     </div>
     <br>
