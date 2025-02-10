@@ -452,10 +452,13 @@ class SessionAdminForm(forms.ModelForm):
 
         self.validate_empty_fields()
 
+        if not (self.schedule.start_date <= self.date <= self.schedule.end_date):
+            messages.error(self.request, "تاریخ برگزاری جلسه میبایست در بین تاریخ شروع و پایان نیم سال تحصیلی تعریف شده در سامانه باشد")
+            raise forms.ValidationError(f'')
+
         if self.start_time >= self.end_time:
             messages.error(self.request, "خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
             raise forms.ValidationError(f'')
-
         # Filter sessions with the same date and schedule, excluding the current session
         overlapping_sessions = Session.objects.filter(
             date=self.date,
