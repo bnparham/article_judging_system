@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django import forms
+from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
 
 from .models import Student, Teacher, FacultyEducationalGroup, TeacherFacultyEducationalGroupAssignment
@@ -82,13 +83,31 @@ class FacultyEducationalGroupAdmin(admin.ModelAdmin):
 
         return queryset, use_distinct
 
+class ST_FacultyFilter(SimpleListFilter):
+    title = "دانشکده"  # Display name in the admin panel
+    parameter_name = "faculty"
+
+    def lookups(self, request, model_admin):
+        match request.user.role:
+            case "ALL":
+                faculties = FacultyEducationalGroup.objects.values_list("faculty", flat=True).distinct()
+            case _:
+                faculties = FacultyEducationalGroup.objects.values_list("faculty", flat=True).distinct().\
+                    filter(faculty=request.user.role)
+        return [(faculty, FacultyEducationalGroup.FACULTY_CHOICES_DICT[faculty]) for faculty in faculties]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(faculty_educational_group__faculty=self.value())
+        return queryset
+
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('user_full_name', 'student_number', '_faculty_educational_group', 'role', 'phone_number', 'email',
                     'admission_year', 'gender',
                     'edit_student')
     search_fields = ('student_number', 'email', 'first_name', 'last_name', 'phone_number', 'admission_year')
-    list_filter = ('role', 'status', 'military_status', 'program_type', 'gender')
+    list_filter = (ST_FacultyFilter, 'role', 'status', 'military_status', 'program_type', 'gender')
     ordering = ('student_number',)
 
     # Read-only fields in the form view
@@ -178,13 +197,28 @@ class TeacherFacultyEducationalGroupAssignmentInline(admin.TabularInline):
         formset.request = request
         return formset
 
+class FacultyFilter(SimpleListFilter):
+    title = "دانشکده"  # Display name in the admin panel
+    parameter_name = "faculty"
+
+    def lookups(self, request, model_admin):
+        faculties = FacultyEducationalGroup.objects.values_list("faculty", flat=True).distinct()
+        return [(faculty, FacultyEducationalGroup.FACULTY_CHOICES_DICT[faculty]) for faculty in faculties]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(
+                teacherfacultyeducationalgroupassignment__faculty_educational_group__faculty=self.value()
+            )
+        return queryset
+
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     inlines = [TeacherFacultyEducationalGroupAssignmentInline]
     list_display = ('user_full_name', 'national_code', 'faculty_education_display',
                     'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
     search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')
-    list_filter = ('created_at', 'updated_at')
+    list_filter = (FacultyFilter, 'created_at', 'updated_at')
     ordering = ('first_name', 'last_name')
 
     # Read-only fields in the form view
