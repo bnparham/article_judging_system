@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>دانلود گزارش نشست ها بر اساس نیم سال های تحصیلی</h1>
+<form method="POST" action="">
+    {% csrf_token %}
+    <div style="margin:10px 0">
+        <label for="schedule">فیلتر بر اساس نیم سال های تحصیلی :</label>
+        <select name="schedule" id="schedule">
+            {% for s in schedules %}
+                <option value="{{s.id}}">{{s.get_semester_display}} {{s.year}}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <br>
+    <div style="margin:10px 0">
+        <label for="schedule">فیلتر بر دانشکده و گروه های آموزشی :</label>
+        <select name="faculty" id="faculty">
+            {% for f in faculty %}
+                <option value="{{f.id}}">{{f}}</option>
+            {% endfor %}
+            <option value="10">همه گروه ها</option>
+        </select>
+    </div>
+    <br>
+    <button type="submit" class="button">دانلود فایل Excel</button>
+</form>
+    <br><br>
+    <a href="/admin/assignment/session/">
+        <button type="button" style="margin: 20px" class="button">برگشت به جلسات دفاع پایان نامه / رساله </button>
+    </a>
+
+{% endblock %}

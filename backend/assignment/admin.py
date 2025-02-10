@@ -609,32 +609,6 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
 
-    FACULTY_CHOICES_DICT = {
-        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
-        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
-        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
-        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
-        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
-        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
-        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
-        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
-        'ENG': 'دانشکده فنی',  # Faculty of Engineering
-        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
-        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
-        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
-        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
-        'UNI': 'پردیس دانشگاهی',  # University Campus
-        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
-        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
-    }
-
-    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
-    #     if db_field.name == "faculty_educational_group":
-    #         qs = FacultyEducationalGroup.objects.filter(faculty=request.user.role).order_by("faculty")
-    #         kwargs["queryset"] = qs
-    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
     def edit_session(self, obj):
         return format_html('<a href="{}">مشاهده</a>', f"/admin/assignment/session/{obj.id}/change/")
     edit_session.short_description = "اطلاعات کامل جلسه دفاعیه"
@@ -662,10 +636,13 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     def download_session(self, request):
         if request.method == "POST":  # If the user clicks "Download CSV"
             schedule_filter = request.POST.get('schedule', None)
-
+            faculty_filter = request.POST.get('faculty', None)
             # Query the filtered data
-            if schedule_filter:
-                sessions = Session.objects.filter(schedule=schedule_filter)
+            if schedule_filter and faculty_filter:
+                if faculty_filter == "10":
+                    sessions = Session.objects.filter(schedule=schedule_filter)
+                else:
+                    sessions = Session.objects.filter(schedule=schedule_filter, faculty_educational_group=faculty_filter)
             else:
                 sessions = Session.objects.all()
 
@@ -675,13 +652,14 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             sheet.title = "Schedules"
 
             # Write the header row (with Persian text)
-            sheet.append(['سال', 'نیم‌سال', 'تاریخ', 'ساعت شروع', 'ساعت پایان',
+            sheet.append(["دانشکده و گروه آموزشی" , 'سال', 'نیم‌سال', 'تاریخ', 'ساعت شروع', 'ساعت پایان',
                           'دانشجو', 'استاد راهنما اول', 'استاد راهنما دوم',
                           'استاد مشاور اول', 'استاد مشاور دوم', 'ناظر تحصیلات تکمیلی',
                           "داوران حاضر در این نشست"])
             for session in sessions:
                 # Append each schedule as a row
                 sheet.append([
+                    session.faculty_educational_group.title,
                     session.schedule.year,
                     session.schedule.get_semester_display(),
                     date2jalali(session.date).strftime('%a, %d %b %Y'),
@@ -708,9 +686,12 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             return response
 
         find_all_schedules = Schedule.objects.all()
+        find_all_faculty = FacultyEducationalGroup.objects.filter(faculty=request.user.role)
+
         # If the user accesses the page
-        return render(request, 'admin/download_session.html', {
-            'schedules': find_all_schedules
+        return render(request, 'assignment/download_session.html', {
+            'schedules': find_all_schedules,
+            'faculty': find_all_faculty,
         })
 
     def get_fieldsets(self, request, obj=None):
