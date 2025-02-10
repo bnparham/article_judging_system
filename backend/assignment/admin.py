@@ -555,8 +555,11 @@ class SessionAdminForm(forms.ModelForm):
             ).first()
 
             messages.error(self.request,
-                           f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                           f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+                           # f"تداخل زمانی در اطلاعات اساتید رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
+                           # f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+                            f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                              {conflict_session.conflict_professor}  در کلاس  {conflict_session.class_number}   در  {conflict_session.faculty_educational_group.get_faculty_display()}  و گروه آموزشی  {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد )
+                            """
             )
             raise forms.ValidationError(f'')
 
