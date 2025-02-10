@@ -181,7 +181,7 @@ class TeacherFacultyEducationalGroupAssignmentInline(admin.TabularInline):
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     inlines = [TeacherFacultyEducationalGroupAssignmentInline]
-    list_display = ('user_full_name', 'national_code',
+    list_display = ('user_full_name', 'national_code', 'faculty_education_display',
                     'get_created_at_jalali', 'get_updated_at_jalali', 'edit_teacher')
     search_fields = ('first_name', 'last_name', 'email', 'national_code', 'faculty_id')
     list_filter = ('created_at', 'updated_at')
@@ -190,6 +190,12 @@ class TeacherAdmin(admin.ModelAdmin):
     # Read-only fields in the form view
     readonly_fields = ['get_created_at_jalali',
                        'get_updated_at_jalali']
+
+    @admin.display(description="دانشکده و گروه های آموزشی")
+    def faculty_education_display(self, obj):
+        # Get all assigned faculties for the teacher
+        faculties = obj.teacherfacultyeducationalgroupassignment_set.all()
+        return " | ".join(str(faculty.faculty_educational_group) for faculty in faculties)
 
     def user_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"

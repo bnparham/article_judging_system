@@ -243,8 +243,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         if conflicting_sessions.exists():
             conflict = conflicting_sessions.first()
             e = (
-                f"تداخل زمانی رخ داده است. داور {conflict.conflict_judge_first_name} {conflict.conflict_judge_last_name} در کلاس دیگری با شناسه ({conflict.id}) "
-                f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد {conflict.conflict_judge_first_name} در کلاس {conflict.class_number}  در {conflict.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت هیئت داوران در نشست دیگری به عنوان داور حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -292,8 +293,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 )
             ).first()
             e = (
-                f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی)"
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict_session.conflict_field} در کلاس {conflict_session.class_number}  در {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت هیئت داوران، در نشست دیگری به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -342,8 +344,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 )
             ).first()
             e = (
-                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد {conflict.conflict_professor} به عنوان داور در کلاس دیگری با شناسه ({conflict.id}) "
-                f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict.conflict_professor} در کلاس {conflict.class_number}  در {conflict.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی به عنوان داور در نشست دیگری حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -488,8 +491,10 @@ class SessionAdminForm(forms.ModelForm):
         if conflicting_sessions.exists():
             conflict_session = conflicting_sessions.first()
             messages.error(self.request,
-                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. دانشجو ({conflict_session.student}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد.")
+            f"""
+تداخل زمانی در اطلاعات دانشجو رخ داده است. دانشجو            {conflict_session.student} در کلاس {conflict_session.class_number}  در  {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد )
+            """
+            )
             raise forms.ValidationError(f'')
 
     def validate_overlapingSessions(self):
@@ -555,11 +560,9 @@ class SessionAdminForm(forms.ModelForm):
             ).first()
 
             messages.error(self.request,
-                           # f"تداخل زمانی در اطلاعات اساتید رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                           # f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
-                            f"""
-تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                              {conflict_session.conflict_professor}  در کلاس  {conflict_session.class_number}   در  {conflict_session.faculty_educational_group.get_faculty_display()}  و گروه آموزشی  {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد )
-                            """
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict_session.conflict_professor} در کلاس {conflict_session.class_number}  در {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی، در نشست دیگری به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی حضور دارد)
+                """
             )
             raise forms.ValidationError(f'')
 

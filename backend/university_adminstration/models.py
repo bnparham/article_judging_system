@@ -66,11 +66,11 @@ class FacultyEducationalGroup(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.get_faculty_display()} - {self.get_educational_group_display()}"
+        return f"{self.get_faculty_display()} - گروه {self.get_educational_group_display()}"
 
     @property
     def title(self):
-        return f"{self.get_faculty_display()} - {self.get_educational_group_display()}"
+        return f"{self.get_faculty_display()} - گروه {self.get_educational_group_display()}"
 
     class Meta:
         verbose_name = "دانشکده و گروه آموزشی"
