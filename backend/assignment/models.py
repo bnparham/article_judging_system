@@ -138,7 +138,7 @@ class Session(models.Model):
         max_length=100,
         null=True,
         blank=True,
-        help_text="کاربری که نشست را ایجاد کرده",
+        help_text="کاربری که نشست را ایجاد کرده است",
         verbose_name="ایجاد شده توسط"
     )
 
@@ -146,7 +146,7 @@ class Session(models.Model):
         max_length=100,
         null=True,
         blank=True,
-        help_text="کاربری که آخرین بار نشست را به‌روزرسانی کرده",
+        help_text="کاربری که آخرین بار نشست را به‌روزرسانی کرده است",
         verbose_name="ویرایش شده توسط"
     )
 
