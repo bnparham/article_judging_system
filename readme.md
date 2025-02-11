@@ -325,3 +325,25 @@ Once the database is recreated, you need to apply migrations to set up the schem
 ```python
 python manage.py migrate
 ```
+
+# Redis Essential Commands
+
+## Note :
+### db 0 is using for celery
+### db 1 is using for  caching
+
+----------------
+### login to database
+```shell
+redis-cli -h redis -p 6379 -n 1
+```
+
+### view all keys
+```shell
+Keys *
+```
+
+### remove all keys
+```shell
+flushdb
+```
