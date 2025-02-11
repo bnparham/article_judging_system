@@ -12,9 +12,9 @@ redis_client = redis.StrictRedis.from_url(settings.CACHES["default"]["LOCATION"]
 
 
 class CustomAdminSite(AdminSite):
-    site_header = "Custom Admin"
-    site_title = "Custom Admin Portal"
-    index_title = "Welcome to Custom Admin"
+    site_header = "درگاه مدیریت سامانه برنامه ریزی جلسات دفاع دانشگاه گیلان"
+    site_title = "درگاه مدیریت سامانه برنامه ریزی جلسات دفاع دانشگاه گیلان"
+    index_title = "سامانه  برنامه ریزی جلسات دفاع دانشگاه گیلان"
 
     def login(self, request, extra_context=None):
         if request.method == "POST":
