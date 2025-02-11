@@ -1,9 +1,9 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, Case, When, F, Value, CharField
 from django.db.models.functions import Concat
 from jalali_date import date2jalali
-
 
 class Session(models.Model):
 
@@ -134,11 +134,38 @@ class Session(models.Model):
         verbose_name="آخرین ویرایش در زمان"
     )
 
+    created_by = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="کاربری که نشست را ایجاد کرده است",
+        verbose_name="ایجاد شده توسط"
+    )
+
+    updated_by = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="کاربری که آخرین بار نشست را به‌روزرسانی کرده است",
+        verbose_name="ویرایش شده توسط"
+    )
+
+    faculty_educational_group = models.ForeignKey(
+        'university_adminstration.FacultyEducationalGroup',
+        on_delete=models.CASCADE,
+        related_name='session_FEG',
+        verbose_name="دانشکده و گروه آموزشی",
+        help_text="دانشکده و گروه آموزشی ای که دانشجو به آن تخصیص داده میشود",
+        null=False,
+        blank=False,
+    )
+
     class Meta:
         verbose_name = 'جلسه دفاع پایان نامه / رساله'
         verbose_name_plural = 'جلسات دفاع پایان نامه / رساله'
         constraints = [
-            models.UniqueConstraint(fields=['schedule', 'date', 'class_number', 'start_time', 'end_time'],
+            models.UniqueConstraint(fields=['schedule', 'date', 'class_number',
+                                            'start_time', 'end_time', 'faculty_educational_group'],
                                     name='unique_session',)]
 
     @property

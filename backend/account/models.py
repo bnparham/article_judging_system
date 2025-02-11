@@ -88,6 +88,32 @@ class User(AbstractUser):
     last_failed_login = models.DateTimeField(null=True, blank=True, verbose_name="آخرین تلاش ناموفق")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="آخرین ورود به سیستم")
     last_login_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="آخرین آدرس آی‌پی ورود")
+    FACULTY_CHOICES_DICT = {
+        'ALL': 'دسترسی به همه دانشکده ها',
+        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
+        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
+        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
+        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
+        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
+        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
+        'ENG': 'دانشکده فنی',  # Faculty of Engineering
+        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
+        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
+        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
+        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
+        'UNI': 'پردیس دانشگاهی',  # University Campus
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
+        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
+    }
+    role = models.CharField(
+        max_length=5,
+        choices=FACULTY_CHOICES_DICT.items(),
+        verbose_name='دانشکده',
+        default='ALL',
+        help_text="دانشکده ای که این کاربر در آن فعالیت میکند را انتخاب کنید",
+    )
 
     USERNAME_FIELD = 'username'
 
@@ -114,6 +140,35 @@ class User(AbstractUser):
     @property
     def name(self):
         return f"{self.first_name} {self.last_name}"
+
+    FACULTY_CHOICES_DICT = {
+        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
+        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
+        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
+        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
+        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
+        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
+        'ENG': 'دانشکده فنی',  # Faculty of Engineering
+        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
+        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
+        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
+        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
+        'UNI': 'پردیس دانشگاهی',  # University Campus
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
+        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
+    }
+
+    @property
+    def user_info(self):
+        value = ""
+        match self.role:
+            case 'ALL':
+                value = "همه دانشکده ها"
+            case _ :
+                value = f"{self.FACULTY_CHOICES_DICT[self.role]}"
+        return f" {self.name} " + "ℹ️" + f"  دسترسی به مدیریت {value} "
 
     def deactivate(self):
         self.is_active = False

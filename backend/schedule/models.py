@@ -6,7 +6,7 @@ from datetime import datetime, date
 
 def current_year_choices():
     current_year = date2jalali(date.today()).year
-    return [(year, year) for year in range(1398, current_year + 1)]
+    return [(year, year) for year in range(1396, current_year + 1)]
 
 class Schedule(models.Model):
 
@@ -15,17 +15,20 @@ class Schedule(models.Model):
             'نیم سال اول',
         'two':
             'نیم سال دوم',
+        'third':
+            'نیم سال تابستان',
     }
 
     year = models.PositiveSmallIntegerField(
         validators=[
-            MinValueValidator(1398),  # Earliest year to allow
-            MaxValueValidator(date2jalali(date.today()).year)  # Restrict to the current year or earlier
+            MinValueValidator(1396),  # Earliest year to allow
+            # MaxValueValidator(date2jalali(date.today()).year)  # Restrict to the current year or earlier
         ],
         choices=current_year_choices(),  # Use a dynamic list of choices
         blank=False,
         null=False,
-        verbose_name="انتخاب سال"
+        verbose_name="انتخاب سال",
+        default=1396,
     )
 
     semester = models.CharField(max_length=10,
@@ -34,6 +37,14 @@ class Schedule(models.Model):
                             default=SEMESTER_CHOICES['one'],
                             null=False,
                             blank=False)
+    start_date = models.DateField(
+        help_text="روز و ماه و سال شروع نیم سال را مشخص کنید.",
+        verbose_name='تاریخ شروع نیم سال تحصیلی',
+    )
+    end_date = models.DateField(
+        help_text="روز و ماه و سال پایان نیم سال را مشخص کنید.",
+        verbose_name='تاریخ پایان نیم سال تحصیلی',
+    )
 
     def __str__(self):
         return f" سال {self.year} - {self.SEMESTER_CHOICES[self.semester]}"

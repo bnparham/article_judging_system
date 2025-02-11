@@ -21,6 +21,8 @@ from django_flatpickr.widgets import TimePickerInput  # Import Flatpickr widget
 
 from schedule.models import Schedule
 
+from university_adminstration.models import FacultyEducationalGroup, Student
+
 
 class MonthFilter_created_at(admin.SimpleListFilter):
     title = _('بر اساس زمان ایجاد شده ')
@@ -241,8 +243,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
         if conflicting_sessions.exists():
             conflict = conflicting_sessions.first()
             e = (
-                f"تداخل زمانی رخ داده است. داور {conflict.conflict_judge_first_name} {conflict.conflict_judge_last_name} در کلاس دیگری با شناسه ({conflict.id}) "
-                f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد {conflict.conflict_judge_first_name} در کلاس {conflict.class_number}  در {conflict.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت هیئت داوران در نشست دیگری به عنوان داور حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -290,8 +293,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 )
             ).first()
             e = (
-                f"تداخل زمانی رخ داده است. استاد ({conflict_session.conflict_field}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (به عنوان استاد راهنما یا مشاور یا ناظر تحصیلات تکمیلی)"
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict_session.conflict_field} در کلاس {conflict_session.class_number}  در {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت هیئت داوران، در نشست دیگری به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -340,8 +344,9 @@ class JudgeAssignmentFormSet(BaseInlineFormSet):
                 )
             ).first()
             e = (
-                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد {conflict.conflict_professor} به عنوان داور در کلاس دیگری با شناسه ({conflict.id}) "
-                f"در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد."
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict.conflict_professor} در کلاس {conflict.class_number}  در {conflict.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict.get_date_jalali} و بازه زمانی {conflict.start_time} تا {conflict.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی به عنوان داور در نشست دیگری حضور دارد)
+                """
             )
             messages.error(self.request, f"خطا : {e}")
             raise ValidationError(
@@ -398,6 +403,28 @@ class JudgeAssignmentInline(admin.TabularInline):
 
 
 class SessionAdminForm(forms.ModelForm):
+    
+    def __init__(self, *args, **kwargs):  # ✅ Accept args and kwargs
+        super(SessionAdminForm, self).__init__(*args, **kwargs)
+        match self.request.user.role:
+            case 'ALL':
+                qs__faculty_educational_group = FacultyEducationalGroup.objects.all()
+                self.fields['faculty_educational_group'].queryset = qs__faculty_educational_group
+
+                qs__student = Student.objects.all()
+                self.fields['student'].queryset = qs__student
+
+            case _:
+                qs__faculty_educational_group = FacultyEducationalGroup.objects.\
+                    filter(faculty=self.request.user.role)
+                self.fields['faculty_educational_group'].queryset = qs__faculty_educational_group
+
+                qs__student = Student.objects.filter(faculty_educational_group__faculty=self.request.user.role)
+                self.fields['student'].queryset = qs__student
+
+        self.fields['faculty_educational_group'].empty_label = None
+        self.fields['student'].empty_label = None
+
     class Meta:
         model = Session
         fields = '__all__'
@@ -421,13 +448,17 @@ class SessionAdminForm(forms.ModelForm):
         self.supervisor4 = cleaned_data.get('supervisor4')
         self.graduate_monitor = cleaned_data.get('graduate_monitor')
         self.class_number = cleaned_data.get('class_number')
+        self.faculty_educational_group = cleaned_data.get('faculty_educational_group')
 
         self.validate_empty_fields()
+
+        if not (self.schedule.start_date <= self.date <= self.schedule.end_date):
+            messages.error(self.request, "تاریخ برگزاری جلسه میبایست در بین تاریخ شروع و پایان نیم سال تحصیلی تعریف شده در سامانه باشد")
+            raise forms.ValidationError(f'')
 
         if self.start_time >= self.end_time:
             messages.error(self.request, "خطا در اطلاعات جلسه دفاعیه. تاریخ شروع جلسه باید قبل از تاریخ پایان باشد !")
             raise forms.ValidationError(f'')
-
         # Filter sessions with the same date and schedule, excluding the current session
         overlapping_sessions = Session.objects.filter(
             date=self.date,
@@ -448,7 +479,8 @@ class SessionAdminForm(forms.ModelForm):
 
     def validate_empty_fields(self):
         if self.start_time == None or self.end_time == None or self.student == None\
-                or self.class_number == None or self.supervisor1 == None or self.graduate_monitor == None:
+                or self.class_number == None or self.supervisor1 == None or self.graduate_monitor == None\
+                or self.faculty_educational_group == None:
             raise ValidationError(f'')
 
     def valiadte_students(self, overlapping_sessions):
@@ -462,8 +494,10 @@ class SessionAdminForm(forms.ModelForm):
         if conflicting_sessions.exists():
             conflict_session = conflicting_sessions.first()
             messages.error(self.request,
-                f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. دانشجو ({conflict_session.student}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد.")
+            f"""
+تداخل زمانی در اطلاعات دانشجو رخ داده است. دانشجو            {conflict_session.student} در کلاس {conflict_session.class_number}  در  {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد )
+            """
+            )
             raise forms.ValidationError(f'')
 
     def validate_overlapingSessions(self):
@@ -529,8 +563,9 @@ class SessionAdminForm(forms.ModelForm):
             ).first()
 
             messages.error(self.request,
-                           f"تداخل زمانی در اطلاعات برگزار کنندگان رخ داده است. استاد ({conflict_session.conflict_professor}) در کلاس دیگری با شناسه ({conflict_session.id}) "
-                           f"در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد."
+                f"""
+تداخل زمانی در اطلاعات اساتید رخ داده است. استاد                 {conflict_session.conflict_professor} در کلاس {conflict_session.class_number}  در {conflict_session.faculty_educational_group.get_faculty_display()} و گروه آموزشی         {conflict_session.faculty_educational_group.get_educational_group_display()} در تاریخ {conflict_session.get_date_jalali} و بازه زمانی {conflict_session.start_time} تا {conflict_session.end_time} حضور دارد. (شناسه اطلاعات این ردیف در پایگاه داده {conflict_session.id} میباشد) | ( ℹ️ خطای مجوز : استاد انتخاب شده در قسمت استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی، در نشست دیگری به عنوان استاد مشاور یا استاد راهنما یا ناظر تحصیلات تکمیلی حضور دارد)
+                """
             )
             raise forms.ValidationError(f'')
 
@@ -539,13 +574,12 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     form = SessionAdminForm
     inlines = [JudgeAssignmentInline]
     # Fields to be displayed in the list view
-    list_display = ('get_id', 'student', 'get_student_role', 'schedule', 'get_date_jalali',
+    list_display = ('edit_session', 'get_id', 'student', 'get_student_role', 'schedule', 'faculty_educational_group', 'get_date_jalali',
                     'get_start_time_persian', 'get_end_time_persian',
                     'get_class_number',
                     'get_judges_number_assigned',
                     'session_status',
-                    'get_updated_at_jalali', 'edit_session',)
-
+                    'get_updated_at_jalali',)
     # Fields to be used for searching in the admin interface
     search_fields = ('student__first_name', 'student__last_name', 'supervisor1__first_name',
                      'supervisor1__last_name',
@@ -571,8 +605,7 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Make sure the fields are read-only in certain cases, or configure which ones can be modified
     readonly_fields = ('get_created_at_jalali',
                        'get_updated_at_jalali',
-                       'is_active',
-                       'get_student_role')
+                       'is_active', 'created_by', 'updated_by')
 
     # Fieldsets to group fields logically in the form view
 
@@ -584,8 +617,16 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     # Add a custom URL to the admin panel
     change_form_template = 'assignment/admin/change_form.html'
 
+    def get_queryset(self, request, *args, **kwargs):
+        queryset = super(SessionAdmin, self).get_queryset(request, *args, **kwargs)
+        match request.user.role:
+            case 'ALL':
+                return queryset
+            case _:
+                return queryset.filter(faculty_educational_group__faculty=request.user.role)
+
     def edit_session(self, obj):
-        return format_html('<a href="{}">مشاهده</a>', f"/assignment/session/{obj.id}/change/")
+        return format_html('<a href="{}">مشاهده</a>', f"/admin/assignment/session/{obj.id}/change/")
     edit_session.short_description = "اطلاعات کامل جلسه دفاعیه"
 
     def get_list_display_links(self, request, list_display):
@@ -595,25 +636,29 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('download_session/', self.admin_site.admin_view(self.download_session), name='download_session'),
+            path('download_session', self.admin_site.admin_view(self.download_session), name='download_session'),
         ]
         return custom_urls + urls
 
     # Add a button/link in the admin toolbar
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
+        name = "دانلود گزارش جلسه ها به صورت فایل Excel"
         extra_context['custom_button'] = format_html(
-            '<a class="button" href="download_session/">دانلود گزارش جلسه‌ها به صورت Excel</a>'
+            f'<a class="button" href="download_session">{name}</a>'
         )
         return super().changelist_view(request, extra_context=extra_context)
 
     def download_session(self, request):
         if request.method == "POST":  # If the user clicks "Download CSV"
             schedule_filter = request.POST.get('schedule', None)
-
+            faculty_filter = request.POST.get('faculty', None)
             # Query the filtered data
-            if schedule_filter:
-                sessions = Session.objects.filter(schedule=schedule_filter)
+            if schedule_filter and faculty_filter:
+                if faculty_filter == "10":
+                    sessions = Session.objects.filter(schedule=schedule_filter)
+                else:
+                    sessions = Session.objects.filter(schedule=schedule_filter, faculty_educational_group=faculty_filter)
             else:
                 sessions = Session.objects.all()
 
@@ -623,13 +668,14 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             sheet.title = "Schedules"
 
             # Write the header row (with Persian text)
-            sheet.append(['سال', 'نیم‌سال', 'تاریخ', 'ساعت شروع', 'ساعت پایان',
+            sheet.append(["دانشکده و گروه آموزشی" , 'سال', 'نیم‌سال', 'تاریخ', 'ساعت شروع', 'ساعت پایان',
                           'دانشجو', 'استاد راهنما اول', 'استاد راهنما دوم',
                           'استاد مشاور اول', 'استاد مشاور دوم', 'ناظر تحصیلات تکمیلی',
                           "داوران حاضر در این نشست"])
             for session in sessions:
                 # Append each schedule as a row
                 sheet.append([
+                    session.faculty_educational_group.title,
                     session.schedule.year,
                     session.schedule.get_semester_display(),
                     date2jalali(session.date).strftime('%a, %d %b %Y'),
@@ -656,20 +702,49 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
             return response
 
         find_all_schedules = Schedule.objects.all()
+        find_all_faculty = FacultyEducationalGroup.objects.filter(faculty=request.user.role)
+
         # If the user accesses the page
-        return render(request, 'admin/download_session.html', {
-            'schedules': find_all_schedules
+        return render(request, 'assignment/download_session.html', {
+            'schedules': find_all_schedules,
+            'faculty_list': find_all_faculty,
+            'faculty_name': FacultyEducationalGroup.objects.filter(faculty=request.user.role).last(),
         })
 
+    FACULTY_CHOICES_DICT = {
+        'HUM': 'دانشکده ادبیات و علوم انسانی',  # Faculty of Literature and Humanities
+        'PHY': 'دانشکده تربیت بدنی و علوم ورزشی',  # Faculty of Physical Education and Sports Sciences
+        'BAS': 'دانشکده علوم پایه',  # Faculty of Basic Sciences
+        'MAT': 'دانشکده علوم ریاضی',  # Faculty of Mathematical Sciences
+        'MAR': 'دانشکده علوم و فنون دریایی',  # Faculty of Marine Sciences and Technology
+        'CHE': 'دانشکده شیمی',  # Faculty of Chemistry
+        'AGR': 'دانشکده علوم کشاورزی',  # Faculty of Agricultural Sciences
+        'ENGE': 'دانشکده فنی و مهندسی شرق گیلان',  # Faculty of Engineering and East Gilan Technology
+        'ENG': 'دانشکده فنی',  # Faculty of Engineering
+        'MNG': 'دانشکده مدیریت و اقتصاد',  # Faculty of Management and Economics
+        'ARC': 'دانشکده معماری و هنر',  # Faculty of Architecture and Art
+        'NAT': 'دانشکده منابع طبیعی',  # Faculty of Natural Resources
+        'MECH': 'دانشکده مهندسی مکانیک',  # Faculty of Mechanical Engineering
+        'UNI': 'پردیس دانشگاهی',  # University Campus
+        'CAS': 'پژوهشکده حوزه دریای کاسپین',  # Caspian Sea Research Institute
+        'GIL': 'پژوهشکده گیلان شناسی',  # Gilan Studies Research Institute
+    }
+
     def get_fieldsets(self, request, obj=None):
+        title = ""
+        match request.user.role:
+            case 'ALL':
+                title = "(تمام دانشجویان)"
+            case _:
+                title = f" از مجموعه دانشجویان {self.FACULTY_CHOICES_DICT[request.user.role]}"
         # If `obj` is None, it's the Add view
         if obj is None:
             # Exclude the "سایر اطلاعات" fieldset
             return (
                 (_('اطلاعات جلسه دفاعیه'), {
-                    'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number')
+                    'fields': ('schedule', 'date', 'start_time', 'end_time', 'faculty_educational_group', 'class_number')
                 }),
-                (_('اطلاعات دانشجو'), {
+                (_(f"اطلاعات دانشجو - {title}"), {
                     'fields': (
                         'student',
                     )
@@ -703,17 +778,17 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 case True:
                     return (
                         (_('اطلاعات جلسه دفاعیه'), {
-                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'fields': ('schedule', 'date', 'start_time', 'end_time',
+                                       'faculty_educational_group', 'class_number'),
                             'description': _("""
                                 ✅
                     نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
                     در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                                 """)
                         }),
-                        (_('اطلاعات دانشجو'), {
+                        (_(f"{title} اطلاعات دانشجو - "), {
                             'fields': (
                                 'student',
-                                'get_student_role',
                             )
                         }),
                         (_('اطلاعات استاد راهنما'), {
@@ -734,7 +809,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                         }),
                         (_('تاریخ ایجاد / ویرایش این جلسه'), {
                             'fields': ('get_created_at_jalali',
+                                       'created_by',
                                        'get_updated_at_jalali',
+                                       'updated_by',
                                        )
                         }),
                         (_('اطلاعات اضافی'), {
@@ -746,17 +823,16 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                 case False:
                     return (
                         (_('اطلاعات جلسه دفاعیه'), {
-                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'class_number'),
+                            'fields': ('schedule', 'date', 'start_time', 'end_time', 'faculty_educational_group', 'class_number'),
                             'description': _("""
                         ✅
             نیم سال تحصیلی / تاریخ / زمان شروع و زمان پایان جلسه / شماره کلاس را به گونه انتخاب کنید تا تداخل ایجاد نشود.         ⚠️      
             در غیر این صورت با پیغام خطا مواجه خواهید شد.               
                         """)
                         }),
-                        (_('اطلاعات دانشجو'), {
+                        (_(f"{title} اطلاعات دانشجو - "), {
                             'fields': (
                                 'student',
-                                'get_student_role',
                             )
                         }),
                         (_('اطلاعات استاد راهنما'), {
@@ -777,7 +853,9 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
                         }),
                         (_('تاریخ ایجاد / ویرایش این جلسه'), {
                             'fields': ('get_created_at_jalali',
+                                       'created_by',
                                        'get_updated_at_jalali',
+                                       'updated_by',
                                        )
                         }),
                         (_('اطلاعات اضافی'), {
@@ -900,6 +978,13 @@ class SessionAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
         else:
             return "ثبت نشده است"
 
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by:  # If created_by is not set, assign the current user
+            obj.created_by = request.user.name
+        obj.updated_by = request.user.user_info  # Always set updated_by to the current user
+
+        # Save the object
+        obj.save()
 
 # Register the Session model with the custom admin class
 admin.site.register(Session, SessionAdmin)
